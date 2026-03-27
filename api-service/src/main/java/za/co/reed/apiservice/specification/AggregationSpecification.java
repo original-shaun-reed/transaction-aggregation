@@ -3,7 +3,6 @@ package za.co.reed.apiservice.specification;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
-import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.commom.enums.PeriodType;
 import za.co.reed.persistence.entity.Aggregation;
 import za.co.reed.persistence.entity.Category;
@@ -14,10 +13,6 @@ public class AggregationSpecification {
 
     public static Specification<Aggregation> periodType(PeriodType periodType) {
         return (root, query, cb) -> cb.equal(root.get("periodType"), periodType);
-    }
-
-    public Specification<Aggregation> transactionStatus(TransactionStatus status) {
-        return (root, query, cb) -> cb.equal(root.get("status"), status);
     }
 
     public static Specification<Aggregation> periodDateBetween(Date from, Date to) {

@@ -1,8 +1,5 @@
 package za.co.reed.apiservice.security;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -20,6 +17,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Slf4j
 @Component

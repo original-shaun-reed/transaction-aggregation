@@ -1,13 +1,14 @@
 package za.co.reed.apiservice.controller.impl;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import za.co.reed.apiservice.controller.CategoryController;
-import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.dto.response.CategoryResponse;
+import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.service.CategoryService;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor

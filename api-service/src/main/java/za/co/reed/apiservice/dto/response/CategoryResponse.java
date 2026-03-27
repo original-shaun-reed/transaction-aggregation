@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import za.co.reed.persistence.entity.Category;
 
 import java.util.UUID;
 
@@ -28,4 +29,14 @@ public class CategoryResponse {
 
     @Schema(description = "Comma-separated list of ISO 18245 MCC codes that map to this category", example = "5411,5422,5451")
     private String mccCodes;
+
+    public static CategoryResponse of(Category category) {
+        return CategoryResponse.builder()
+                .id(category.getExternalId())
+                .code(category.getCode())
+                .label(category.getLabel())
+                .path(category.getPath())
+                .mccCodes(category.getMccCodes())
+                .build();
+    }
 }

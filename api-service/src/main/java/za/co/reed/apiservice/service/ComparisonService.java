@@ -6,8 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import za.co.reed.apiservice.builder.CacheKeyBuilder;
 import za.co.reed.apiservice.config.properties.CacheConfigProperties;
-import za.co.reed.apiservice.dto.response.AggregationResponse;
 import za.co.reed.apiservice.dto.request.ComparisonRequest;
+import za.co.reed.apiservice.dto.response.AggregationResponse;
 import za.co.reed.apiservice.dto.response.compare.*;
 import za.co.reed.apiservice.enums.Direction;
 import za.co.reed.commom.enums.PeriodType;
@@ -101,16 +101,14 @@ public class ComparisonService {
                 .collect(Collectors.toMap(AggregationResponse::getCategoryCode, r -> r));
 
         return currentSummaries.stream()
-                .map((AggregationResponse current) -> {
-                    AggregationResponse previous = preAggregationSummaryMap.getOrDefault(current.getCategoryCode(), null);
-                    return buildCategoryBreakdown(current, previous, currentTotal);
-                })
+                .map((AggregationResponse current) -> buildCategoryBreakdown(preAggregationSummaryMap, current, currentTotal))
                 .sorted(Comparator.comparing(CategoryBreakdown::getCurrentSpend).reversed())
                 .toList();
     }
 
-    private CategoryBreakdown buildCategoryBreakdown(AggregationResponse current, AggregationResponse previous,
-                                                     BigDecimal currentTotal) {
+    private CategoryBreakdown buildCategoryBreakdown(Map<String, AggregationResponse> preAggregationSummaryMap,
+                                                     AggregationResponse current, BigDecimal currentTotal) {
+        AggregationResponse previous = preAggregationSummaryMap.getOrDefault(current.getCategoryCode(), null);
         BigDecimal previousSpend = previous != null ? previous.getTotalSpend() : BigDecimal.ZERO;
         BigDecimal deltaPercentage = deltaPercentage(previousSpend, current.getTotalSpend());
 
@@ -193,17 +191,28 @@ public class ComparisonService {
                         .setScale(2, RoundingMode.HALF_UP));
     }
 
+    /*
+        Delta Percentage Formula:
+
+        Formula:
+            (totalSpend - previousSpend) / previousSpend * 100
+
+        Steps:
+        1. Subtract previousSpend from totalSpend → difference
+        2. Divide difference by previousSpend → relative change
+        3. Multiply by 100 → convert to percentage
+        4. Round to 2 decimal places → final display value
+
+        Example:
+            totalSpend = 1200
+            previousSpend = 1000
+            Result = ((1200 - 1000) / 1000) * 100 = 20.00%
+    */
     private BigDecimal deltaPercentage(BigDecimal previousSpend, BigDecimal totalSpend) {
         if (previousSpend.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
 
-
-        /*
-        Delta Percentage Formula:
-
-
-        * */
         return totalSpend.subtract(previousSpend)
                 .divide(previousSpend, 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))

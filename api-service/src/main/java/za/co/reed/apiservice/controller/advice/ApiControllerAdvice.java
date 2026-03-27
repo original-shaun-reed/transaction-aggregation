@@ -1,7 +1,5 @@
 package za.co.reed.apiservice.controller.advice;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -23,6 +21,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import za.co.reed.apiservice.dto.response.ApiErrorResponse;
 import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
 import za.co.reed.apiservice.exception.ApiNotFoundException;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -199,7 +200,7 @@ public class ApiControllerAdvice {
          * parameters are missing.
          * Returns a 400 BAD_REQUEST with appropriate error message.
          */
-        @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+        @ExceptionHandler(MissingServletRequestParameterException.class)
         @ResponseStatus(HttpStatus.BAD_REQUEST)
         @ResponseBody
         public ResponseEntity<ApiErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex,
@@ -219,7 +220,7 @@ public class ApiControllerAdvice {
          * conversion fails.
          * Returns a 400 BAD_REQUEST with appropriate error message.
          */
-        @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
         @ResponseStatus(HttpStatus.BAD_REQUEST)
         @ResponseBody
         public ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex,

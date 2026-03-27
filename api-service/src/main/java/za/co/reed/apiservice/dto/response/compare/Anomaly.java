@@ -14,12 +14,20 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Statistical anomaly detected in a category")
+@Schema(description = "Statistical anomaly detected in a category, including reason, z-score, and descriptive context")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Anomaly {
 
+    @Schema(description = "Unique identifier of the category where the anomaly was detected", example = "groceries")
     private String categoryId;
+
+    @Schema(description = "Reason code or classification for the anomaly", implementation = AnomalyReason.class, example = "OUTLIER_HIGH_SPEND")
     private AnomalyReason reason;
+
+    @Schema(description = "Z-score quantifying the deviation from the mean (standard deviations)", example = "3.25")
     private BigDecimal zScore;
+
+    @Schema(description = "Human-readable explanation of the anomaly", example = "Spending in groceries is significantly higher than expected compared to historical averages")
     private String description;
 }
+

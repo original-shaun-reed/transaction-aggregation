@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import za.co.reed.commom.enums.SourceType;
 import za.co.reed.commom.enums.TransactionStatus;
+import za.co.reed.persistence.entity.Transaction;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,34 +20,62 @@ import java.util.UUID;
 @Schema(description = "A single financial transaction")
 public class TransactionResponse {
 
-        @Schema(description = "ID of the transaction")
-        private UUID id;
+    @Schema(description = "Unique identifier of the transaction", example = "550e8400-e29b-41d4-a716-446655440000")
+    private UUID id;
 
-        @Schema(description = "Original ID from the source system")
-        private String sourceId;
+    @Schema(description = "Original identifier from the source system", example = "TXN123456789")
+    private String sourceId;
 
-        @Schema(description = "Which data source produced this transaction")
-        private SourceType sourceType;
+    @Schema(description = "System or integration that produced this transaction", example = "BANK_FEED")
+    private SourceType sourceType;
 
-        private String accountId;
-        private BigDecimal amount;
-        private String currency;
-        private String merchantName;
+    @Schema(description = "Identifier of the account associated with this transaction", example = "ACC987654321")
+    private String accountId;
 
-        @Schema(description = "ISO 18245 Merchant Category Code — null for bank feed / payment processor")
-        private String merchantMcc;
+    @Schema(description = "Monetary amount of the transaction", example = "1250.75")
+    private BigDecimal amount;
 
-        private Instant transactedAt;
+    @Schema(description = "Currency code in ISO 4217 format", example = "ZAR")
+    private String currency;
 
-        private TransactionStatus status;
+    @Schema(description = "Name of the merchant or payee", example = "Pick n Pay")
+    private String merchantName;
 
-        private UUID categoryId;
+    @Schema(description = "ISO 18245 Merchant Category Code — null if transaction originates from a bank feed or payment processor", example = "5411")
+    private String merchantMcc;
 
-        @Schema(description = "Assigned category code — e.g. 'groceries', 'restaurants'")
-        private String categoryCode;
+    @Schema(description = "Timestamp when the transaction occurred", example = "2026-03-27T14:35:00Z")
+    private Instant transactedAt;
 
-        @Schema(description = "Human-readable category label")
-        private String categoryLabel;
+    @Schema(description = "Current processing status of the transaction", example = "SETTLED")
+    private TransactionStatus status;
 
-        private Instant createdAt;
+    @Schema(description = "Unique identifier of the assigned category", example = "c7a1f2d4-1234-5678-9abc-def012345678")
+    private UUID categoryId;
+
+    @Schema(description = "Assigned category code for classification", example = "groceries")
+    private String categoryCode;
+
+    @Schema(description = "Human-readable label for the category", example = "Groceries")
+    private String categoryLabel;
+
+    @Schema(description = "Timestamp when the transaction record was created in the system", example = "2026-03-27T15:00:00Z")
+    private Instant createdAt;
+
+    public static TransactionResponse of(Transaction transaction) {
+        return TransactionResponse.builder()
+                .id(transaction.getExternalId())
+                .sourceId(transaction.getSourceId())
+                .sourceType(transaction.getSourceType())
+                .accountId(transaction.getAccountId())
+                .amount(transaction.getAmount())
+                .categoryId(transaction.getCategory().getExternalId())
+                .currency(transaction.getCurrency())
+                .merchantName(transaction.getMerchantName())
+                .merchantMcc(transaction.getMerchantMcc())
+                .transactedAt(transaction.getTransactedAt())
+                .status(transaction.getStatus())
+                .createdAt(transaction.getCreatedAt())
+                .build();
+    }
 }

@@ -1,14 +1,15 @@
 package za.co.reed.apiservice.service;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import za.co.reed.apiservice.dto.CategoryBreakdownZScore;
 import za.co.reed.apiservice.dto.response.compare.Anomaly;
 import za.co.reed.apiservice.dto.response.compare.CategoryBreakdown;
 import za.co.reed.apiservice.enums.AnomalyReason;
+
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.List;
 
 @Slf4j
 @Service
