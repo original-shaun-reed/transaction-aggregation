@@ -1,0 +1,32 @@
+# ── prod profile ───────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import:
+      - "aws-parameterstore:/transation_aggregator/prod/api/"
+      - "aws-secretsmanager:transation_aggregator/prod/db-credentials"
+      - "aws-secretsmanager:transation_aggregator/prod/api-secrets"
+  datasource:
+    url: jdbc:postgresql://${/transation_aggregator/prod/api/db-host}:5432/transaction_aggregator
+    username: ${db_username}
+    password: ${db_password}
+  data:
+    redis:
+      host: ${/transation_aggregator/prod/api/redis-host}
+      password: ${redis-password}
+
+springdoc:
+  swagger-ui:
+    enabled: false # Swagger UI OFF in prod
+  api-docs:
+    enabled: true # /v3/api-docs still available for internal tooling
+
+security:
+  jwt:
+    secret: ${jwt-secret}
+
+logging:
+  level:
+    root: WARN
+    za.co.reed.apiservice: INFO

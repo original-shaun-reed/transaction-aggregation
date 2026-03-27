@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: mock-sources
+  profiles:
+    active: dev
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+server:
+  port: 8081
+
+# ─────────────────────────────────────────
+# Ingestor target
+# ─────────────────────────────────────────
+ingestor:
+  webhook-url: ${INGESTOR_WEBHOOK_URL:http://localhost:8082/api/internal/webhook/payment}
+  webhook-secret: ${INGESTOR_WEBHOOK_SECRET:dev-secret-change-in-prod}
+
+# ─────────────────────────────────────────
+# Source configuration
+# All values overridable via environment variables.
+# ─────────────────────────────────────────
+sources:
+  bank-feed:
+    enabled: true
+    poll-interval-ms: 30000 # 30s — pull from mock OFX endpoint
+    accounts-per-batch: 10
+    transactions-per-account: 5
+
+  payment-processor:
+    enabled: true
+    emit-interval-ms: 15000 # 15s — push webhooks to ingestor
+    events-per-emit: 8
+    retry-simulation: true # simulate Stripe at-least-once delivery
+
+  card-network:
+    enabled: true
+    batch-interval-ms: 300000 # 5min — regenerate settlement batch
+    records-per-batch: 50
+
+logging:
+  level:
+    za.co.reed.mocksourceservice: DEBUG
+    org.springframework.web.client: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

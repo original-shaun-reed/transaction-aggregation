@@ -1,0 +1,8 @@
+# ── dev profile ───────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+logging:
+  level:
+    za.co.reed.mocksourceservice: DEBUG

@@ -1,0 +1,25 @@
+# ── prod profile ──────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import:
+      - "aws-parameterstore:/transaction_aggregator/prod/mock-sources/"
+      - "aws-secretsmanager:transaction_aggregator/prod/ingestor-secrets"
+
+ingestor:
+  webhook-url: ${/transaction-aggregator/prod/mock-sources/ingestor-webhook-url}
+  webhook-secret: ${webhook-secret}
+
+sources:
+  bank-feed:
+    poll-interval-ms: 60000
+  payment-processor:
+    emit-interval-ms: 30000
+  card-network:
+    batch-interval-ms: 600000
+
+logging:
+  level:
+    root: WARN
+    za.co.reed.mocksourceservice: INFO

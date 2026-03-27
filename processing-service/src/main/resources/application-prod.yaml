@@ -1,0 +1,32 @@
+# ── prod profile ──────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import:
+      - "aws-parameterstore:/transaction_aggregator/prod/processing/"
+      - "aws-secretsmanager:transaction_aggregator/prod/db-credentials"
+      - "aws-secretsmanager:transaction_aggregator/prod/processing-secrets"
+  datasource:
+    url: jdbc:postgresql://${/transaction_aggregator/prod/processing/db-host}:5432/transaction_aggregation
+    username: ${username}
+    password: ${password}
+  kafka:
+    bootstrap-servers: ${/transaction_aggregator/prod/processing/kafka-bootstrap-servers}
+    consumer:
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+    producer:
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+
+logging:
+  level:
+    root: WARN
+    za.co.reed.processingservice: INFO

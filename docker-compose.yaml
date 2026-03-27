@@ -1,0 +1,234 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: transaction-aggregator-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       transaction_aggregator
+      POSTGRES_USER:     transaction_aggregator
+      POSTGRES_PASSWORD: transaction_aggregator_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transaction_aggregator -d transaction_aggregator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: transaction-aggregator-p-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_secret --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_secret", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: transaction-aggregator-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME:   2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: transaction-aggregator-kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"   # external (host → container)
+      - "9093:9093"   # internal (container → container)
+    environment:
+      KAFKA_BROKER_ID:                        1
+      KAFKA_ZOOKEEPER_CONNECT:                zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:   EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS:             EXTERNAL://localhost:9092,INTERNAL://kafka:9093
+      KAFKA_LISTENERS:                        EXTERNAL://0.0.0.0:9092,INTERNAL://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME:       INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE:        "true"    # auto-create topics for development
+      KAFKA_LOG_RETENTION_HOURS:              168        # 7 days
+      KAFKA_LOG_SEGMENT_BYTES:                1073741824
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: transaction-aggregator-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME:            local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+    profiles:
+      - tools   # opt-in: docker-compose --profile tools up -d
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: transaction-aggregator-pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8091:8091"
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    profiles:
+      - tools   # opt-in: docker-compose --profile tools up -d
+
+
+  processing-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.processing
+    container_name: transaction-aggregator-processing
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transaction_aggregator
+      DB_USER: transaction_aggregator
+      DB_PASSWORD: transaction_aggregator_secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+
+  # ── ingestor-service ──────────────────────────────────────
+  ingestor-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestor
+    container_name: transaction-aggregator-ingestor
+    restart: unless-stopped
+    depends_on:
+      - processing-service
+      - kafka
+      - redis
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transaction_aggregator
+      DB_USER: transaction_aggregator
+      DB_PASSWORD: transaction_aggregator_secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      INGESTOR_WEBHOOK_SECRET: dev-webhook-secret-min-256-bits-change-in-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── api-service ───────────────────────────────────────────
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: transaction-aggregator-api
+    restart: unless-stopped
+    depends_on:
+      - processing-service
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: transaction_aggregator
+      DB_USER: transaction_aggregator
+      DB_PASSWORD: transaction_aggregator_secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_secret
+      SECURITY_JWT_SECRET: dev-jwt-secret-min-256-bits-change-in-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── mock-source-service (starts last) ─────────────────────
+  mock-source-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-source
+    container_name: transaction-aggregator-mock-source
+    restart: unless-stopped
+    depends_on:
+      - ingestor-service
+      - api-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      INGESTOR_WEBHOOK_URL: http://ingestor-service:8082/api/internal/webhook/payment
+      INGESTOR_WEBHOOK_SECRET: dev-webhook-secret-min-256-bits-change-in-prod
+      API_SERVICE_URL: http://api-service:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# ─────────────────────────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:

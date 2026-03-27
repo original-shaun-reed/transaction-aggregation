@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: ingestor-service
+  profiles:
+    active: dev
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # ── Kafka producer ──────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        spring.json.add.type.headers: false # keeps messages clean for consumers
+
+  # ── Redis (deduplication) ───────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_secret}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+
+server:
+  port: 8082
+
+# ── Deduplication ─────────────────────────────────────────────────
+deduplication:
+  ttl-minutes: 1440 # 24 hours — covers Stripe's full retry window
+
+# ── Kafka topics ──────────────────────────────────────────────────
+kafka:
+  replication-factor: 1 # override to 3 in prod
+
+# ── Webhook security ──────────────────────────────────────────────
+webhook:
+  secret: ${INGESTOR_WEBHOOK_SECRET:dev-secret-change-in-prod}
+
+# ── Source polling URLs ───────────────────────────────────────────
+sources:
+  bank-feed:
+    url: ${BANK_FEED_URL:http://localhost:8081/api/bankfeed/latest}
+    poll-interval-ms: 30000
+  card-network:
+    url: ${CARD_NETWORK_URL:http://localhost:8081/batch/latest}
+    poll-interval-ms: 300000
+
+# ── Actuator ─────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    za.co.reed.ingestorservice: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN

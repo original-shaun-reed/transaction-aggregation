@@ -1,0 +1,472 @@
+{
+  "info": {
+    "name": "Transaction Aggregator API",
+    "description": "Postman collection for the Transaction Aggregator API Service (api-service module)\n\nThis collection contains all production endpoints available as of 2026-03-27.\n\n**Architecture**: Read-only REST API backed by PostgreSQL with Redis caching (Cache-Aside pattern with TTL-based invalidation). All data flows through Kafka from mock sources → ingestor → processing-service → API tier.\n\n**Authentication**: All endpoints require JWT Bearer token authentication.\n\n**Base URL**: {{base_url}} (default: http://localhost:8080)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL for the API service"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your_jwt_token_here",
+      "type": "string",
+      "description": "JWT Bearer token for authentication. Format: Authorization: Bearer <token>"
+    },
+    {
+      "key": "account_id",
+      "value": "ACC-0001",
+      "type": "string",
+      "description": "Sample account ID from bank feed (ACC-0001 to ACC-0010) or payment processor (cus_001 to cus_005)"
+    },
+    {
+      "key": "transaction_id",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "string",
+      "description": "Sample transaction UUID"
+    },
+    {
+      "key": "category_id",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "string",
+      "description": "Sample category UUID"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Aggregations",
+      "description": "Pre-computed spend summaries and comparisons. All aggregations are computed asynchronously by processing-service and cached with TTL-based invalidation. Cache misses trigger fresh computation from PostgreSQL.",
+      "item": [
+        {
+          "name": "Get Spend Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/aggregations/{{account_id}}/summary?periodType=DAILY&from=2026-03-01&to=2026-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "aggregations", "{{account_id}}", "summary"],
+              "query": [
+                {
+                  "key": "periodType",
+                  "value": "DAILY",
+                  "description": "Period type: DAILY, WEEKLY, or MONTHLY"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date (ISO-8601 format, inclusive)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date (ISO-8601 format, inclusive)"
+                }
+              ]
+            },
+            "description": "Returns total spend, transaction count, and top category breakdown for the specified period. Results cached for 5 minutes."
+          }
+        },
+        {
+          "name": "Period-over-Period Comparison",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentFrom\": \"2026-03-01\",\n  \"currentTo\": \"2026-03-31\",\n  \"previousFrom\": \"2026-02-01\",\n  \"previousTo\": \"2026-02-28\",\n  \"accountId\": \"ACC-0001\",\n  \"periodType\": \"MONTHLY\",\n  \"includeAnomalies\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/aggregations/{{account_id}}/compare",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "aggregations", "{{account_id}}", "compare"]
+            },
+            "description": "Compares spend between two time windows. Both period queries execute in parallel using CompletableFuture for optimal performance. Cached 5 minutes. Includes period-over-period deltas and anomaly detection."
+          }
+        },
+        {
+          "name": "Get Spend Time Series",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/aggregations/{{account_id}}/time-series?periodType=DAILY&from=2026-03-01&to=2026-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "aggregations", "{{account_id}}", "time-series"],
+              "query": [
+                {
+                  "key": "periodType",
+                  "value": "DAILY",
+                  "description": "Period type: DAILY, WEEKLY, or MONTHLY"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date (ISO-8601 format)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date (ISO-8601 format)"
+                }
+              ]
+            },
+            "description": "Returns spend aggregated by time period (daily/weekly/monthly) for the specified range. Ideal for charting spend trends over time."
+          }
+        },
+        {
+          "name": "Get Top Merchants by Spend",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/aggregations/{{account_id}}/top-merchants?status=SETTLED&from=2026-03-01&to=2026-03-31&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "aggregations", "{{account_id}}", "top-merchants"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SETTLED",
+                  "description": "Transaction status filter: PENDING, SETTLED, or REVERSED"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date (ISO-8601 format)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date (ISO-8601 format)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum number of merchants to return (default: 10)"
+                }
+              ]
+            },
+            "description": "Returns the top N merchants ranked by total spend within the given period. Cached for 2 minutes."
+          }
+        },
+        {
+          "name": "Get Spend by Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/aggregations/{{account_id}}/by-category?from=2026-03-01&to=2026-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "aggregations", "{{account_id}}", "by-category"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date (ISO-8601 format)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date (ISO-8601 format)"
+                }
+              ]
+            },
+            "description": "Returns total spend and transaction count broken down by category for the specified period."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Transaction category hierarchy. Categories are organized in a hierarchical tree (ltree) with parent-child relationships, MCC code mappings, and keyword patterns used by the rules-based categorization engine.",
+      "item": [
+        {
+          "name": "List All Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories?page=0&pageSize=20&order=path&sort=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "categories"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Results per page (max: 100, default: 20)"
+                },
+                {
+                  "key": "order",
+                  "value": "path",
+                  "description": "Field to sort by: path, label, code (default: path)"
+                },
+                {
+                  "key": "sort",
+                  "value": "asc",
+                  "description": "Sort direction: asc or desc (default: asc)"
+                }
+              ]
+            },
+            "description": "Returns the full category hierarchy ordered by ltree path (parents appear before children). Each category includes code, label, path, and associated MCC codes."
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories/{{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "categories", "{{category_id}}"]
+            },
+            "description": "Look up a single category by its UUID. Returns full category metadata including parent/child relationships and MCC code mappings."
+          }
+        },
+        {
+          "name": "Get Categories by MCC Codes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories/mcc?mccCodes=5411,5812&page=0&pageSize=20&order=label&sort=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "categories", "mcc"],
+              "query": [
+                {
+                  "key": "mccCodes",
+                  "value": "5411,5812",
+                  "description": "Comma-separated list of ISO 18245 MCC codes to look up"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Results per page (max: 100, default: 20)"
+                },
+                {
+                  "key": "order",
+                  "value": "label",
+                  "description": "Field to sort by: path, label, code (default: label)"
+                },
+                {
+                  "key": "sort",
+                  "value": "asc",
+                  "description": "Sort direction: asc or desc (default: asc)"
+                }
+              ]
+            },
+            "description": "Batch lookup categories by MCC code(s). Accepts a comma-separated list of ISO 18245 MCC codes and returns matching categories with full metadata."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "Retrieve and search individual transactions. All transaction reads are performed against PostgreSQL. Transactions are categorized through a 3-tier strategy (rules engine → ML classifier → uncategorized fallback) by the processing-service as they flow through Kafka.",
+      "item": [
+        {
+          "name": "List Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions?accountId={{account_id}}&status=SETTLED&from=2026-03-01&to=2026-03-31&page=0&pageSize=20&order=createdAt&sort=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [
+                {
+                  "key": "accountId",
+                  "value": "{{account_id}}",
+                  "description": "Filter to a specific account ID (optional)"
+                },
+                {
+                  "key": "status",
+                  "value": "SETTLED",
+                  "description": "Filter by transaction status: PENDING, SETTLED, REVERSED (optional)"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date filter (ISO-8601 format, optional)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date filter (ISO-8601 format, optional)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Results per page (max: 1000, default: 20)"
+                },
+                {
+                  "key": "order",
+                  "value": "createdAt",
+                  "description": "Field to sort by: createdAt, amount, merchantName (default: createdAt)"
+                },
+                {
+                  "key": "sort",
+                  "value": "asc",
+                  "description": "Sort direction: asc or desc (default: asc)"
+                }
+              ]
+            },
+            "description": "Returns a paginated list of transactions with cursor-based navigation. Filter by account, status, and date range. Pagination is O(1) at any depth and stable under concurrent inserts."
+          }
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{transaction_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "{{transaction_id}}"]
+            },
+            "description": "Retrieve a single transaction by its UUID. Includes full transaction details: category assignment, status, amounts, merchant name, source, and timestamps."
+          }
+        },
+        {
+          "name": "Search Transactions by Merchant Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/search?merchantName=Amazon&from=2026-03-01&to=2026-03-31&page=0&pageSize=20&order=createdAt&sort=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "search"],
+              "query": [
+                {
+                  "key": "merchantName",
+                  "value": "Amazon",
+                  "description": "Merchant name search term (required, case-insensitive)"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-03-01",
+                  "description": "Start date filter (ISO-8601 format, optional)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-31",
+                  "description": "End date filter (ISO-8601 format, optional)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Results per page (max: 1000, default: 20)"
+                },
+                {
+                  "key": "order",
+                  "value": "createdAt",
+                  "description": "Field to sort by: createdAt, amount, merchantName (default: createdAt)"
+                },
+                {
+                  "key": "sort",
+                  "value": "asc",
+                  "description": "Sort direction: asc or desc (default: asc)"
+                }
+              ]
+            },
+            "description": "Search for transactions by merchant name with optional date range filtering. Searches using case-insensitive pattern matching against the merchantName field."
+          }
+        }
+      ]
+    }
+  ]
+}

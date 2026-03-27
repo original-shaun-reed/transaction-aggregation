@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>za.co.reed</groupId>
+        <artifactId>transaction-aggregator</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>common</artifactId>
+    <name>Transaction Aggregator — Common Library</name>
+    <version>0.0.1-SNAPSHOT</version>
+    <description>
+        Shared domain types, enums, and constants used across all LedgerFlow modules.
+        This is a plain JAR — no Spring Boot, no web, no Kafka.
+        Zero framework dependencies means any module can import it without pulling
+        in transitive Spring dependencies they do not need.
+    </description>
+
+    <!--
+        Deliberately NO spring-boot-maven-plugin here.
+        This module produces a plain importable JAR, not a fat executable JAR.
+        Adding the plugin would repackage it in a way that breaks Maven imports.
+    -->
+
+    <dependencies>
+        <!--
+            Jackson annotations only — needed for @JsonProperty on records
+            so Kafka's JsonSerializer/Deserializer can handle them correctly.
+            No Jackson databind — consumers bring their own.
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
+        <!-- Jakarta Validation annotations (@NotNull, @Positive etc.) -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

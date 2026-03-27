@@ -1,0 +1,3 @@
+-- Transaction Aggregator Database Initialization
+-- Flyway migrations (in processing-service) will create the schema
+-- This file exists to satisfy Docker volume mount requirements
