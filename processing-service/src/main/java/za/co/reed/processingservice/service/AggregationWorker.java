@@ -44,7 +44,7 @@ public class AggregationWorker {
     private final CategoryRepository categoryRepository;
     private final AggregationRepository aggregationRepository;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateAggregations(Transaction transaction) {
         if (transaction.getCategory() == null) {
             log.warn("Transaction has no category — skipping aggregation: {}",
@@ -102,8 +102,7 @@ public class AggregationWorker {
         }
     }
 
-    @Transactional
-    public void upsertSpend(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
+    private void upsertSpend(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
         
@@ -129,8 +128,7 @@ public class AggregationWorker {
         aggregationRepository.save(aggregation);
     }
 
-    @Transactional
-    public void upsertReversal(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
+    private void upsertReversal(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
 

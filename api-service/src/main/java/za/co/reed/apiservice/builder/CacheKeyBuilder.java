@@ -4,17 +4,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * Builds composite Redis cache keys for all getKey endpoints.
- *
- * Key format: {prefix}:{accountId}:{from}:{to}[:{extras}]
- *
- * Design rules:
- *   - All parts are URL-safe — no slashes, spaces, or special chars
- *   - accountId "ALL" is used when no account filter is applied
- *   - Category lists are sorted before hashing so [food, travel] == [travel, food]
- *   - Null-safe throughout — missing params produce deterministic keys
- *
- * A cache miss on any parameter change is intentional — stale aggregations
- * are worse than a cache miss that triggers a fresh DB query.
  */
 @Component
 public class CacheKeyBuilder {

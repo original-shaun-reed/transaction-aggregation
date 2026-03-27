@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
+import org.apache.kafka.common.header.Header;
 import org.springframework.stereotype.Component;
 import za.co.reed.commom.constants.KafkaTopics;
 import za.co.reed.commom.dto.NormalisedTransaction;
@@ -77,7 +78,7 @@ public class DeadLetterConsumer {
     }
 
     private String extractHeader(ConsumerRecord<?, ?> record, String headerName) {
-        var header = record.headers().lastHeader(headerName);
+        Header header = record.headers().lastHeader(headerName);
         return header != null ? new String(header.value()) : "unknown";
     }
 }
