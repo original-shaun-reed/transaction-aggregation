@@ -38,215 +38,191 @@ import static org.mockito.Mockito.*;
 class TransactionProducerTest {
 
     @Mock
-    private KafkaTemplate<String, NormalisedTransaction> kafkaTemplate;
-    
+    private KafkaTemplate<String, NormalisedTransaction> testKafkaTemplate;
+
     @Mock
-    private MeterRegistry meterRegistry;
-    
+    private MeterRegistry testMeterRegistry;
+
     @Mock
-    private SendResult<String, NormalisedTransaction> sendResult;
-    
+    private SendResult<String, NormalisedTransaction> testSendResult;
+
     @Captor
-    private ArgumentCaptor<NormalisedTransaction> transactionCaptor;
-    
-    private TransactionProducer transactionProducer;
-    
+    private ArgumentCaptor<NormalisedTransaction> testTransactionCaptor;
+
+    private TransactionProducer testTransactionProducer;
+
     private NormalisedTransaction testTransaction;
-    
+
     @BeforeEach
     void setUp() {
-        transactionProducer = new TransactionProducer(kafkaTemplate, meterRegistry);
-        
+        testTransactionProducer = new TransactionProducer(testKafkaTemplate, testMeterRegistry);
+
         testTransaction = new NormalisedTransaction(
-            "txn-12345",
-            SourceType.PAYMENT_PROCESSOR,
-            "cus_001",
-            new BigDecimal("100.50"),
-            Currency.getInstance("ZAR"),
-            "Test Merchant",
-            "1234",
-            Instant.now().minusSeconds(3600),
-            TransactionStatus.SETTLED,
-            "{\"raw\": \"payload\"}"
-        );
-    }
-    
-    @Test
-    void publish_sendsToCorrectTopicWithSourceIdAsKey() {
-        // Given
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = 
-            CompletableFuture.completedFuture(sendResult);
-        
-        when(kafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq("txn-12345"), any(NormalisedTransaction.class)))
-            .thenReturn(future);
-        
-        // When
-        transactionProducer.publish(testTransaction);
-        
-        // Then
-        verify(kafkaTemplate).send(
-            eq(KafkaTopics.RAW_TRANSACTIONS),
-            eq("txn-12345"),
-            transactionCaptor.capture()
-        );
-        
-        NormalisedTransaction capturedTransaction = transactionCaptor.getValue();
-        assertThat(capturedTransaction.sourceId()).isEqualTo("txn-12345");
-        assertThat(capturedTransaction.amount()).isEqualTo(new BigDecimal("100.50"));
-        assertThat(capturedTransaction.sourceType()).isEqualTo(SourceType.PAYMENT_PROCESSOR);
-    }
-    
-    @Test
-    void publish_logsSuccess_whenMessageSentSuccessfully() {
-        // Given
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = 
-            CompletableFuture.completedFuture(sendResult);
-        
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-            .thenReturn(future);
-        
-        // When
-        transactionProducer.publish(testTransaction);
-        
-        // Then
-        verify(kafkaTemplate).send(
-            eq(KafkaTopics.RAW_TRANSACTIONS),
-            eq("txn-12345"),
-            any(NormalisedTransaction.class)
-        );
-        // Can't easily verify log messages without a logging framework
-        // but the success callback code path is executed
-    }
-    
-    @Test
-    void publish_throwsException_whenKafkaSendFails() {
-        // Given
-        RuntimeException kafkaException = new RuntimeException("Kafka broker unavailable");
-        CompletableFuture<SendResult<String, NormalisedTransaction>> failedFuture = 
-            CompletableFuture.failedFuture(kafkaException);
-        
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-            .thenReturn(failedFuture);
-        
-        // When & Then
-        try {
-            transactionProducer.publish(testTransaction);
-        } catch (RuntimeException e) {
-            // Expected - the method should propagate the exception
-        }
-        
-        verify(kafkaTemplate).send(
-            eq(KafkaTopics.RAW_TRANSACTIONS),
-            eq("txn-12345"),
-            any(NormalisedTransaction.class)
-        );
-    }
-    
-    @Test
-    void publish_handlesDifferentTransactionTypes() {
-        // Test with different source types
-        SourceType[] sourceTypes = {SourceType.PAYMENT_PROCESSOR, SourceType.BANK_FEED, SourceType.CARD_NETWORK};
-        
-        for (SourceType sourceType : sourceTypes) {
-            NormalisedTransaction transaction = new NormalisedTransaction(
-                "txn-" + sourceType.name(),
-                sourceType,
-                "ACC-001",
-                new BigDecimal("50.00"),
-                Currency.getInstance("USD"),
-                "Merchant " + sourceType.name(),
-                "5678",
-                Instant.now().minusSeconds(1800),
+                "txn-12345",
+                SourceType.PAYMENT_PROCESSOR,
+                "cus_001",
+                new BigDecimal("100.50"),
+                Currency.getInstance("ZAR"),
+                "Test Merchant",
+                "1234",
+                Instant.now().minusSeconds(3600),
                 TransactionStatus.SETTLED,
                 "{\"raw\": \"payload\"}"
-            );
-            
-            CompletableFuture<SendResult<String, NormalisedTransaction>> future = 
-                CompletableFuture.completedFuture(sendResult);
-            
-            when(kafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq("txn-" + sourceType.name()), any(NormalisedTransaction.class)))
-                .thenReturn(future);
-            
-            // When
-            transactionProducer.publish(transaction);
-            
-            // Then
-            verify(kafkaTemplate).send(
-                eq(KafkaTopics.RAW_TRANSACTIONS),
-                eq("txn-" + sourceType.name()),
-                any(NormalisedTransaction.class)
-            );
-            
-            // Reset mock for next iteration
-            reset(kafkaTemplate);
-        }
-    }
-    
-    @Test
-    void publish_usesSourceIdAsKafkaMessageKey() {
-        // Given
-        String sourceId = "unique-source-id-123";
-        NormalisedTransaction transaction = new NormalisedTransaction(
-            sourceId,
-            SourceType.CARD_NETWORK,
-            "ACC-001",
-            new BigDecimal("75.00"),
-            Currency.getInstance("EUR"),
-            "Test Merchant",
-            "9012",
-            Instant.now().minusSeconds(2700),
-            TransactionStatus.SETTLED,
-            "{\"raw\": \"payload\"}"
         );
-        
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = 
-            CompletableFuture.completedFuture(sendResult);
-        
-        when(kafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq(sourceId), any(NormalisedTransaction.class)))
-            .thenReturn(future);
-        
-        // When
-        transactionProducer.publish(transaction);
-        
-        // Then - Verify the key (sourceId) is used
-        verify(kafkaTemplate).send(eq(KafkaTopics.RAW_TRANSACTIONS), eq(sourceId), any(NormalisedTransaction.class));
     }
-    
+
     @Test
-    void publish_handlesCallbackSuccessLogging() {
-        // Given
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = 
-            CompletableFuture.completedFuture(sendResult);
-        
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-            .thenReturn(future);
-        
-        // When
-        transactionProducer.publish(testTransaction);
-        
-        // Then - The thenAccept callback should execute (logs success)
-        // Can't easily verify the callback execution without more complex mocking
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+    void publish_sendsToCorrectTopicWithSourceIdAsKey() {
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
+                CompletableFuture.completedFuture(testSendResult);
+
+        when(testKafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq("txn-12345"), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
+
+        testTransactionProducer.publish(testTransaction);
+
+        verify(testKafkaTemplate).send(
+                eq(KafkaTopics.RAW_TRANSACTIONS),
+                eq("txn-12345"),
+                testTransactionCaptor.capture()
+        );
+
+        NormalisedTransaction testCapturedTransaction = testTransactionCaptor.getValue();
+        assertThat(testCapturedTransaction.sourceId()).isEqualTo("txn-12345");
+        assertThat(testCapturedTransaction.amount()).isEqualTo(new BigDecimal("100.50"));
+        assertThat(testCapturedTransaction.sourceType()).isEqualTo(SourceType.PAYMENT_PROCESSOR);
     }
-    
+
     @Test
-    void publish_handlesCallbackErrorLogging() {
-        // Given
-        RuntimeException kafkaException = new RuntimeException("Kafka error");
-        CompletableFuture<SendResult<String, NormalisedTransaction>> failedFuture = 
-            CompletableFuture.failedFuture(kafkaException);
-        
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-            .thenReturn(failedFuture);
-        
-        // When & Then
+    void publish_logsSuccess_whenMessageSentSuccessfully() {
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
+                CompletableFuture.completedFuture(testSendResult);
+
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
+
+        testTransactionProducer.publish(testTransaction);
+
+        verify(testKafkaTemplate).send(
+                eq(KafkaTopics.RAW_TRANSACTIONS),
+                eq("txn-12345"),
+                any(NormalisedTransaction.class)
+        );
+    }
+
+    @Test
+    void publish_throwsException_whenKafkaSendFails() {
+        RuntimeException testKafkaException = new RuntimeException("Kafka broker unavailable");
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFailedFuture =
+                CompletableFuture.failedFuture(testKafkaException);
+
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFailedFuture);
+
         try {
-            transactionProducer.publish(testTransaction);
+            testTransactionProducer.publish(testTransaction);
         } catch (RuntimeException e) {
             // Expected
         }
-        
-        // Then - The exceptionally callback should execute (logs error)
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+
+        verify(testKafkaTemplate).send(
+                eq(KafkaTopics.RAW_TRANSACTIONS),
+                eq("txn-12345"),
+                any(NormalisedTransaction.class)
+        );
+    }
+
+    @Test
+    void publish_handlesDifferentTransactionTypes() {
+        SourceType[] testSourceTypes = {SourceType.PAYMENT_PROCESSOR, SourceType.BANK_FEED, SourceType.CARD_NETWORK};
+
+        for (SourceType testSourceType : testSourceTypes) {
+            NormalisedTransaction testTransactionVariant = new NormalisedTransaction(
+                    "txn-" + testSourceType.name(),
+                    testSourceType,
+                    "ACC-001",
+                    new BigDecimal("50.00"),
+                    Currency.getInstance("USD"),
+                    "Merchant " + testSourceType.name(),
+                    "5678",
+                    Instant.now().minusSeconds(1800),
+                    TransactionStatus.SETTLED,
+                    "{\"raw\": \"payload\"}"
+            );
+
+            CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
+                    CompletableFuture.completedFuture(testSendResult);
+
+            when(testKafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq("txn-" + testSourceType.name()), any(NormalisedTransaction.class)))
+                    .thenReturn(testFuture);
+
+            testTransactionProducer.publish(testTransactionVariant);
+
+            verify(testKafkaTemplate).send(
+                    eq(KafkaTopics.RAW_TRANSACTIONS),
+                    eq("txn-" + testSourceType.name()),
+                    any(NormalisedTransaction.class)
+            );
+
+            reset(testKafkaTemplate);
+        }
+    }
+
+    @Test
+    void publish_usesSourceIdAsKafkaMessageKey() {
+        String testSourceId = "unique-source-id-123";
+        NormalisedTransaction testTransactionVariant = new NormalisedTransaction(
+                testSourceId,
+                SourceType.CARD_NETWORK,
+                "ACC-001",
+                new BigDecimal("75.00"),
+                Currency.getInstance("EUR"),
+                "Test Merchant",
+                "9012",
+                Instant.now().minusSeconds(2700),
+                TransactionStatus.SETTLED,
+                "{\"raw\": \"payload\"}"
+        );
+
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
+                CompletableFuture.completedFuture(testSendResult);
+
+        when(testKafkaTemplate.send(eq(KafkaTopics.RAW_TRANSACTIONS), eq(testSourceId), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
+
+        testTransactionProducer.publish(testTransactionVariant);
+
+        verify(testKafkaTemplate).send(eq(KafkaTopics.RAW_TRANSACTIONS), eq(testSourceId), any(NormalisedTransaction.class));
+    }
+
+    @Test
+    void publish_handlesCallbackSuccessLogging() {
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
+                CompletableFuture.completedFuture(testSendResult);
+
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
+
+        testTransactionProducer.publish(testTransaction);
+
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+    }
+
+    @Test
+    void publish_handlesCallbackErrorLogging() {
+        RuntimeException testKafkaException = new RuntimeException("Kafka error");
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFailedFuture =
+                CompletableFuture.failedFuture(testKafkaException);
+
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFailedFuture);
+
+        try {
+            testTransactionProducer.publish(testTransaction);
+        } catch (RuntimeException e) {
+            // Expected
+        }
+
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
     }
 }

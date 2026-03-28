@@ -30,178 +30,143 @@ import static org.mockito.Mockito.*;
 class DeduplicationServiceTest {
 
     @Mock
-    private StringRedisTemplate redisTemplate;
-    
+    private StringRedisTemplate testRedisTemplate;
+
     @Mock
-    private ValueOperations<String, String> valueOperations;
-    
-    private DeduplicationService deduplicationService;
-    
+    private ValueOperations<String, String> testValueOperations;
+
+    private DeduplicationService testDeduplicationService;
+
     @BeforeEach
     void setUp() {
-        deduplicationService = new DeduplicationService(redisTemplate);
+        testDeduplicationService = new DeduplicationService(testRedisTemplate);
     }
-    
+
     @Test
     void isDuplicate_returnsTrue_whenKeyExists() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        
-        when(redisTemplate.hasKey(expectedKey)).thenReturn(true);
-        
-        // When
-        boolean result = deduplicationService.isDuplicate(sourceId);
-        
-        // Then
-        assertThat(result).isTrue();
-        verify(redisTemplate).hasKey(expectedKey);
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+
+        when(testRedisTemplate.hasKey(testExpectedKey)).thenReturn(true);
+
+        boolean testResult = testDeduplicationService.isDuplicate(testSourceId);
+
+        assertThat(testResult).isTrue();
+        verify(testRedisTemplate).hasKey(testExpectedKey);
     }
-    
+
     @Test
     void isDuplicate_returnsFalse_whenKeyDoesNotExist() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        
-        when(redisTemplate.hasKey(expectedKey)).thenReturn(false);
-        
-        // When
-        boolean result = deduplicationService.isDuplicate(sourceId);
-        
-        // Then
-        assertThat(result).isFalse();
-        verify(redisTemplate).hasKey(expectedKey);
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+
+        when(testRedisTemplate.hasKey(testExpectedKey)).thenReturn(false);
+
+        boolean testResult = testDeduplicationService.isDuplicate(testSourceId);
+
+        assertThat(testResult).isFalse();
+        verify(testRedisTemplate).hasKey(testExpectedKey);
     }
-    
+
     @Test
     void isDuplicate_returnsFalse_whenRedisReturnsNull() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        
-        when(redisTemplate.hasKey(expectedKey)).thenReturn(null);
-        
-        // When
-        boolean result = deduplicationService.isDuplicate(sourceId);
-        
-        // Then
-        assertThat(result).isFalse();
-        verify(redisTemplate).hasKey(expectedKey);
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+
+        when(testRedisTemplate.hasKey(testExpectedKey)).thenReturn(null);
+
+        boolean testResult = testDeduplicationService.isDuplicate(testSourceId);
+
+        assertThat(testResult).isFalse();
+        verify(testRedisTemplate).hasKey(testExpectedKey);
     }
-    
+
     @Test
     void markSeen_setsKeyWithTtl() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        Duration expectedTtl = Duration.ZERO; // Default TTL
-        
-        // When
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        deduplicationService.markSeen(sourceId);
-        
-        // Then
-        verify(valueOperations).set(eq(expectedKey), eq("1"), eq(expectedTtl));
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+        Duration testExpectedTtl = Duration.ZERO;
+
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        testDeduplicationService.markSeen(testSourceId);
+
+        verify(testValueOperations).set(eq(testExpectedKey), eq("1"), eq(testExpectedTtl));
     }
-    
+
     @Test
     void checkAndMark_returnsTrue_whenKeyIsNewlySet() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        Duration expectedTtl = Duration.ofMinutes(0);
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+        Duration testExpectedTtl = Duration.ofMinutes(0);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl)))
-            .thenReturn(true);
-        
-        // When
-        boolean result = deduplicationService.checkAndMark(sourceId);
-        
-        // Then
-        assertThat(result).isTrue(); // true = not a duplicate
-        verify(valueOperations).setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl));
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        when(testValueOperations.setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl)))
+                .thenReturn(true);
+
+        boolean testResult = testDeduplicationService.checkAndMark(testSourceId);
+
+        assertThat(testResult).isTrue();
+        verify(testValueOperations).setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl));
     }
-    
+
     @Test
     void checkAndMark_returnsFalse_whenKeyAlreadyExists() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        Duration expectedTtl = Duration.ZERO;
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+        Duration testExpectedTtl = Duration.ZERO;
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl)))
-            .thenReturn(false);
-        
-        // When
-        boolean result = deduplicationService.checkAndMark(sourceId);
-        
-        // Then
-        assertThat(result).isFalse(); // false = duplicate
-        verify(valueOperations).setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl));
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        when(testValueOperations.setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl)))
+                .thenReturn(false);
+
+        boolean testResult = testDeduplicationService.checkAndMark(testSourceId);
+
+        assertThat(testResult).isFalse();
+        verify(testValueOperations).setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl));
     }
-    
+
     @Test
     void checkAndMark_returnsFalse_whenRedisReturnsNull() {
-        // Given
-        String sourceId = "txn-12345";
-        String expectedKey = "dedup:txn-12345";
-        Duration expectedTtl = Duration.ZERO;
-        
-        when(valueOperations.setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl)))
-            .thenReturn(null);
-        
-        // When
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        boolean result = deduplicationService.checkAndMark(sourceId);
-        
-        // Then
-        assertThat(result).isFalse(); // null treated as false
-        verify(valueOperations).setIfAbsent(eq(expectedKey), eq("1"), eq(expectedTtl));
+        String testSourceId = "txn-12345";
+        String testExpectedKey = "dedup:txn-12345";
+        Duration testExpectedTtl = Duration.ZERO;
+
+        when(testValueOperations.setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl)))
+                .thenReturn(null);
+
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        boolean testResult = testDeduplicationService.checkAndMark(testSourceId);
+
+        assertThat(testResult).isFalse();
+        verify(testValueOperations).setIfAbsent(eq(testExpectedKey), eq("1"), eq(testExpectedTtl));
     }
-    
+
     @Test
     void key_generation_includesPrefix() {
-        // Given
-        String sourceId = "test-id-123";
-        
-        // When
-        // Using reflection to test private method, but we can test through public methods
-        // Instead, we'll verify the key format through mock interactions
-        
-        // When
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        deduplicationService.markSeen(sourceId);
-        
-        // Then
-        verify(valueOperations).set(eq("dedup:test-id-123"), anyString(), any(Duration.class));
+        String testSourceId = "test-id-123";
+
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        testDeduplicationService.markSeen(testSourceId);
+
+        verify(testValueOperations).set(eq("dedup:test-id-123"), anyString(), any(Duration.class));
     }
-    
+
     @Test
     void isDuplicate_logsDebugMessage_whenDuplicateDetected() {
-        // Given
-        String sourceId = "txn-12345";
-        
-        // When
-        deduplicationService.isDuplicate(sourceId);
-        
-        // Then - method should log debug message (we can't easily verify logs without 
-        // a logging framework, but the code path is executed)
-        verify(redisTemplate).hasKey("dedup:txn-12345");
+        String testSourceId = "txn-12345";
+
+        testDeduplicationService.isDuplicate(testSourceId);
+
+        verify(testRedisTemplate).hasKey("dedup:txn-12345");
     }
-    
+
     @Test
     void markSeen_logsDebugMessage() {
-        // Given
-        String sourceId = "txn-12345";
-        
-        // When
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        deduplicationService.markSeen(sourceId);
-        
-        // Then - method should log debug message with sourceId and TTL
-        verify(valueOperations).set(eq("dedup:txn-12345"), eq("1"), any(Duration.class));
+        String testSourceId = "txn-12345";
+
+        when(testRedisTemplate.opsForValue()).thenReturn(testValueOperations);
+        testDeduplicationService.markSeen(testSourceId);
+
+        verify(testValueOperations).set(eq("dedup:txn-12345"), eq("1"), any(Duration.class));
     }
 }

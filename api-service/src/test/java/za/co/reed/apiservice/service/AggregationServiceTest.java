@@ -30,22 +30,22 @@ import static org.mockito.Mockito.*;
 class AggregationServiceTest {
 
     @Mock
-    private AggregationRepository aggregationRepository;
+    private AggregationRepository testAggregationRepository;
 
     @Mock
-    private RedisCacheService cacheService;
+    private RedisCacheService testCacheService;
 
     @Mock
-    private CacheKeyBuilder cacheKeyBuilder;
+    private CacheKeyBuilder testCacheKeyBuilder;
 
     @Mock
-    private CacheConfigProperties cacheConfigProperties;
+    private CacheConfigProperties testCacheConfigProperties;
 
     @Mock
-    private TransactionService transactionService;
+    private TransactionService testTransactionService;
 
     @InjectMocks
-    private AggregationService aggregationService;
+    private AggregationService testAggregationService;
 
     private String testAccountId;
     private PeriodType testPeriodType;
@@ -94,210 +94,210 @@ class AggregationServiceTest {
     @Test
     void summary_shouldThrowApiInternalServerErrorExceptionOnError() {
         // Given
-        String cacheKey = "aggregationSummary:acc-123:DAILY:" + testFromDate.getTime() + ":"
+        String testCacheKey = "aggregationSummary:acc-123:DAILY:" + testFromDate.getTime() + ":"
                 + testToDate.getTime();
 
-        when(cacheKeyBuilder.getKey("aggregationSummary", testAccountId, testPeriodType, testFromDate,
+        when(testCacheKeyBuilder.getKey("aggregationSummary", testAccountId, testPeriodType, testFromDate,
                 testToDate))
-                .thenReturn(cacheKey);
-        when(cacheService.get(cacheKey, new TypeReference<List<AggregationResponse>>() {
+                .thenReturn(testCacheKey);
+        when(testCacheService.get(testCacheKey, new TypeReference<List<AggregationResponse>>() {
         }))
                 .thenThrow(new RuntimeException("Cache error"));
 
         // When & Then
         assertThrows(ApiInternalServerErrorException.class,
-                () -> aggregationService.summary(testAccountId, testPeriodType, testFromDate,
+                () -> testAggregationService.summary(testAccountId, testPeriodType, testFromDate,
                         testToDate));
     }
 
     @Test
     void timeSeries_shouldThrowApiInternalServerErrorExceptionOnError() {
         // Given
-        String cacheKey = "timeSeries:acc-123:DAILY:" + testFromDate.getTime() + ":" + testToDate.getTime();
+        String testCacheKey = "timeSeries:acc-123:DAILY:" + testFromDate.getTime() + ":" + testToDate.getTime();
 
-        when(cacheKeyBuilder.getKey("timeSeries", testAccountId, testPeriodType, testFromDate, testToDate))
-                .thenReturn(cacheKey);
-        when(cacheService.get(cacheKey, new TypeReference<List<AggregationResponse>>() {}))
+        when(testCacheKeyBuilder.getKey("timeSeries", testAccountId, testPeriodType, testFromDate, testToDate))
+                .thenReturn(testCacheKey);
+        when(testCacheService.get(testCacheKey, new TypeReference<List<AggregationResponse>>() {}))
                 .thenThrow(new RuntimeException("Cache error"));
 
         // When & Then
-        assertThrows(ApiInternalServerErrorException.class, () -> aggregationService.timeSeries(testAccountId, testPeriodType, testFromDate,
+        assertThrows(ApiInternalServerErrorException.class, () -> testAggregationService.timeSeries(testAccountId, testPeriodType, testFromDate,
                         testToDate));
     }
 
     @Test
     void topMerchants_shouldThrowApiInternalServerErrorExceptionOnError() {
         // Given
-        String cacheKey = "topMerchants:acc-123:SETTLED:" + testFromDate.getTime() + ":" + testToDate.getTime()
+        String testCacheKey = "topMerchants:acc-123:SETTLED:" + testFromDate.getTime() + ":" + testToDate.getTime()
                 + ":10";
 
-        when(cacheKeyBuilder.getKey("topMerchants", testAccountId, testStatus, testFromDate, testToDate,
+        when(testCacheKeyBuilder.getKey("topMerchants", testAccountId, testStatus, testFromDate, testToDate,
                 testLimit))
-                .thenReturn(cacheKey);
-        when(cacheService.get(cacheKey, new TypeReference<List<AggregationResponse>>() {
+                .thenReturn(testCacheKey);
+        when(testCacheService.get(testCacheKey, new TypeReference<List<AggregationResponse>>() {
         }))
                 .thenThrow(new RuntimeException("Cache error"));
 
         // When & Then
         assertThrows(ApiInternalServerErrorException.class,
-                () -> aggregationService.topMerchants(testAccountId, testStatus, testFromDate,
+                () -> testAggregationService.topMerchants(testAccountId, testStatus, testFromDate,
                         testToDate, testLimit));
     }
 
     @Test
     void categorySummary_shouldReturnAggregatedData() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenReturn(Collections.singletonList(testAggregation));
 
         // When
-        List<AggregationResponse> result = aggregationService.categorySummary(
+        List<AggregationResponse> testResult = testAggregationService.categorySummary(
                 testAccountId, testPeriodType, testFromDate, testToDate);
 
         // Then
-        assertThat(result).hasSize(1);
-        AggregationResponse response = result.get(0);
-        assertThat(response.getCategoryCode()).isEqualTo("GROCERIES");
-        assertThat(response.getCategoryLabel()).isEqualTo("Groceries");
-        assertThat(response.getTotalSpend()).isEqualTo(new BigDecimal("150.75"));
-        assertThat(response.getTransactionCount()).isEqualTo(5L);
-        assertThat(response.getTotalReversed()).isEqualTo(new BigDecimal("10.50"));
+        assertThat(testResult).hasSize(1);
+        AggregationResponse testResponse = testResult.get(0);
+        assertThat(testResponse.getCategoryCode()).isEqualTo("GROCERIES");
+        assertThat(testResponse.getCategoryLabel()).isEqualTo("Groceries");
+        assertThat(testResponse.getTotalSpend()).isEqualTo(new BigDecimal("150.75"));
+        assertThat(testResponse.getTransactionCount()).isEqualTo(5L);
+        assertThat(testResponse.getTotalReversed()).isEqualTo(new BigDecimal("10.50"));
     }
 
     @Test
     void categorySummary_shouldThrowExceptionOnError() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When & Then
         assertThrows(RuntimeException.class,
-                () -> aggregationService.categorySummary(testAccountId, testPeriodType, testFromDate,
+                () -> testAggregationService.categorySummary(testAccountId, testPeriodType, testFromDate,
                         testToDate));
     }
 
     @Test
     void timeSeriesSummary_shouldReturnTimeSeriesData() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenReturn(Collections.singletonList(testAggregation));
 
         // When
-        List<AggregationResponse> result = aggregationService.timeSeriesSummary(
+        List<AggregationResponse> testResult = testAggregationService.timeSeriesSummary(
                 testAccountId, testPeriodType, testFromDate, testToDate);
 
         // Then
-        assertThat(result).hasSize(1);
-        AggregationResponse response = result.get(0);
-        assertThat(response.getTotalSpend()).isEqualTo(new BigDecimal("150.75"));
-        assertThat(response.getTransactionCount()).isEqualTo(5L);
-        assertThat(response.getPeriod()).isNotNull();
+        assertThat(testResult).hasSize(1);
+        AggregationResponse testResponse = testResult.get(0);
+        assertThat(testResponse.getTotalSpend()).isEqualTo(new BigDecimal("150.75"));
+        assertThat(testResponse.getTransactionCount()).isEqualTo(5L);
+        assertThat(testResponse.getPeriod()).isNotNull();
     }
 
     @Test
     void timeSeriesSummary_shouldThrowExceptionOnError() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When & Then
         assertThrows(RuntimeException.class,
-                () -> aggregationService.timeSeriesSummary(testAccountId, testPeriodType, testFromDate,
+                () -> testAggregationService.timeSeriesSummary(testAccountId, testPeriodType, testFromDate,
                         testToDate));
     }
 
     @Test
     void topMerchantsSummary_shouldThrowExceptionOnError() {
         // Given
-        when(transactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
+        when(testTransactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
                 .thenThrow(new RuntimeException("Service error"));
 
         // When & Then
         assertThrows(RuntimeException.class,
-                () -> aggregationService.topMerchantsSummary(testAccountId, testStatus, testFromDate,
+                () -> testAggregationService.topMerchantsSummary(testAccountId, testStatus, testFromDate,
                         testToDate, testLimit));
     }
 
     @Test
     void categorySummary_shouldReturnEmptyListWhenNoData() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenReturn(Collections.emptyList());
 
         // When
-        List<AggregationResponse> result = aggregationService.categorySummary(
+        List<AggregationResponse> testResult = testAggregationService.categorySummary(
                 testAccountId, testPeriodType, testFromDate, testToDate);
 
         // Then
-        assertThat(result).isEmpty();
+        assertThat(testResult).isEmpty();
     }
 
     @Test
     void timeSeriesSummary_shouldReturnEmptyListWhenNoData() {
         // Given
-        when(aggregationRepository.findAll(any(Specification.class)))
+        when(testAggregationRepository.findAll(any(Specification.class)))
                 .thenReturn(Collections.emptyList());
 
         // When
-        List<AggregationResponse> result = aggregationService.timeSeriesSummary(
+        List<AggregationResponse> testResult = testAggregationService.timeSeriesSummary(
                 testAccountId, testPeriodType, testFromDate, testToDate);
 
         // Then
-        assertThat(result).isEmpty();
+        assertThat(testResult).isEmpty();
     }
 
     @Test
     void topMerchantsSummary_shouldHandleTransactionsWithoutMerchantInfo() {
         // Given
-        Transaction transactionWithoutMerchant = new Transaction();
-        transactionWithoutMerchant.setId(2L);
-        transactionWithoutMerchant.setAccountId(testAccountId);
-        transactionWithoutMerchant.setAmount(new BigDecimal("50.00"));
-        transactionWithoutMerchant.setStatus(testStatus);
+        Transaction testTransactionWithoutMerchant = new Transaction();
+        testTransactionWithoutMerchant.setId(2L);
+        testTransactionWithoutMerchant.setAccountId(testAccountId);
+        testTransactionWithoutMerchant.setAmount(new BigDecimal("50.00"));
+        testTransactionWithoutMerchant.setStatus(testStatus);
         // No merchant name or MCC
 
-        when(transactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
-                .thenReturn(Collections.singletonList(transactionWithoutMerchant));
+        when(testTransactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
+                .thenReturn(Collections.singletonList(testTransactionWithoutMerchant));
 
         // When
-        List<AggregationResponse> result = aggregationService.topMerchantsSummary(
+        List<AggregationResponse> testResult = testAggregationService.topMerchantsSummary(
                 testAccountId, testStatus, testFromDate, testToDate, testLimit);
 
         // Then
-        assertThat(result).isEmpty(); // Should be filtered out
+        assertThat(testResult).isEmpty(); // Should be filtered out
     }
 
     @Test
     void topMerchantsSummary_shouldHandleMultipleTransactionsSameMerchant() {
         // Given
-        Transaction transaction1 = new Transaction();
-        transaction1.setId(1L);
-        transaction1.setAccountId(testAccountId);
-        transaction1.setAmount(new BigDecimal("50.00"));
-        transaction1.setMerchantName("Same Merchant|5411");
-        transaction1.setMerchantMcc("5411");
-        transaction1.setStatus(testStatus);
+        Transaction testTransaction1 = new Transaction();
+        testTransaction1.setId(1L);
+        testTransaction1.setAccountId(testAccountId);
+        testTransaction1.setAmount(new BigDecimal("50.00"));
+        testTransaction1.setMerchantName("Same Merchant|5411");
+        testTransaction1.setMerchantMcc("5411");
+        testTransaction1.setStatus(testStatus);
 
-        Transaction transaction2 = new Transaction();
-        transaction2.setId(2L);
-        transaction2.setAccountId(testAccountId);
-        transaction2.setAmount(new BigDecimal("75.00"));
-        transaction2.setMerchantName("Same Merchant|5411");
-        transaction2.setMerchantMcc("5411");
-        transaction2.setStatus(testStatus);
+        Transaction testTransaction2 = new Transaction();
+        testTransaction2.setId(2L);
+        testTransaction2.setAccountId(testAccountId);
+        testTransaction2.setAmount(new BigDecimal("75.00"));
+        testTransaction2.setMerchantName("Same Merchant|5411");
+        testTransaction2.setMerchantMcc("5411");
+        testTransaction2.setStatus(testStatus);
 
-        List<Transaction> transactions = Arrays.asList(transaction1, transaction2);
-        when(transactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
-                .thenReturn(transactions);
+        List<Transaction> testTransactions = Arrays.asList(testTransaction1, testTransaction2);
+        when(testTransactionService.getTransactions(testAccountId, testStatus, testFromDate, testToDate, testLimit))
+                .thenReturn(testTransactions);
 
         // When
-        List<AggregationResponse> result = aggregationService.topMerchantsSummary(
+        List<AggregationResponse> testResult = testAggregationService.topMerchantsSummary(
                 testAccountId, testStatus, testFromDate, testToDate, testLimit);
 
         // Then
-        assertThat(result).hasSize(1);
-        AggregationResponse response = result.get(0);
-        assertThat(response.getTotalSpend()).isEqualTo(new BigDecimal("125.00")); // 50 + 75
-        assertThat(response.getTransactionCount()).isEqualTo(2L);
+        assertThat(testResult).hasSize(1);
+        AggregationResponse testResponse = testResult.get(0);
+        assertThat(testResponse.getTotalSpend()).isEqualTo(new BigDecimal("125.00")); // 50 + 75
+        assertThat(testResponse.getTransactionCount()).isEqualTo(2L);
     }
 }

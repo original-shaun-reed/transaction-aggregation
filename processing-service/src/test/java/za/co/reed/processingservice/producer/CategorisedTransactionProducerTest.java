@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,21 +36,21 @@ import static org.mockito.Mockito.*;
 class CategorisedTransactionProducerTest {
 
     @Mock
-    private KafkaTemplate<String, NormalisedTransaction> kafkaTemplate;
+    private KafkaTemplate<String, NormalisedTransaction> testKafkaTemplate;
 
     @InjectMocks
-    private CategorisedTransactionProducer producer;
+    private CategorisedTransactionProducer testProducer;
 
     @Captor
-    private ArgumentCaptor<ProducerRecord<String, NormalisedTransaction>> recordCaptor;
+    private ArgumentCaptor<ProducerRecord<String, NormalisedTransaction>> testRecordCaptor;
 
-    private NormalisedTransaction sourceTransaction;
-    private Transaction transaction;
-    private Category category;
+    private NormalisedTransaction testSourceTransaction;
+    private Transaction testTransaction;
+    private Category testCategory;
 
     @BeforeEach
     void setUp() {
-        sourceTransaction = new NormalisedTransaction(
+        testSourceTransaction = new NormalisedTransaction(
                 "source-123",
                 SourceType.CARD_NETWORK,
                 "ACC-001",
@@ -63,94 +63,94 @@ class CategorisedTransactionProducerTest {
                 "{\"raw\": \"payload\"}"
         );
 
-        category = Category.builder()
+        testCategory = Category.builder()
                 .id(1L)
                 .code("GROCERIES")
                 .label("Groceries")
                 .path("groceries")
                 .build();
 
-        transaction = Transaction.builder()
+        testTransaction = Transaction.builder()
                 .id(1L)
                 .sourceId("source-123")
-                .category(category)
+                .category(testCategory)
                 .build();
     }
 
     @Test
     void publish_shouldHandleSuccessfulPublish() {
         // Arrange
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = CompletableFuture.completedFuture(
-                createSendResult(sourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 456L)
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = CompletableFuture.completedFuture(
+                createSendResult(testSourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 456L, testSourceTransaction)
         );
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(transaction, sourceTransaction);
+        testProducer.publish(testTransaction, testSourceTransaction);
 
         // Assert
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
     }
 
     @Test
     void publish_shouldHandlePublishFailure() {
         // Arrange
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = new CompletableFuture<>();
-        future.completeExceptionally(new RuntimeException("Kafka broker unavailable"));
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = new CompletableFuture<>();
+        testFuture.completeExceptionally(new RuntimeException("Kafka broker unavailable"));
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(transaction, sourceTransaction);
+        testProducer.publish(testTransaction, testSourceTransaction);
 
         // Assert
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
     }
 
     @Test
     void publish_shouldHandleNullCategory() {
         // Arrange
-        Transaction transactionWithoutCategory = Transaction.builder()
+        Transaction testTransactionWithoutCategory = Transaction.builder()
                 .id(2L)
                 .sourceId("source-456")
                 .category(null)
                 .build();
 
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = CompletableFuture.completedFuture(
-                createSendResult(sourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 457L)
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = CompletableFuture.completedFuture(
+                createSendResult(testSourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 457L, testSourceTransaction)
         );
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(transactionWithoutCategory, sourceTransaction);
+        testProducer.publish(testTransactionWithoutCategory, testSourceTransaction);
 
         // Assert
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
         // Should handle null category gracefully
     }
 
     @Test
     void publish_shouldUseWhenCompleteForAsyncHandling() {
         // Arrange
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = new CompletableFuture<>();
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = new CompletableFuture<>();
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(transaction, sourceTransaction);
+        testProducer.publish(testTransaction, testSourceTransaction);
 
         // Assert
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
-        assertTrue(future.toCompletableFuture().isDone() || !future.toCompletableFuture().isDone()); // Just checking it's set up
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+        assertTrue(testFuture.toCompletableFuture().isDone() || !testFuture.toCompletableFuture().isDone()); // Just checking it's set up
     }
 
 
     @Test
     void publish_shouldWorkWithDifferentTransactionTypes() {
         // Arrange
-        NormalisedTransaction bankFeedSource = new NormalisedTransaction(
+        NormalisedTransaction testBankFeedSource = new NormalisedTransaction(
                 "source-789",
                 SourceType.BANK_FEED,
                 "ACC-002",
@@ -163,36 +163,37 @@ class CategorisedTransactionProducerTest {
                 "{\"raw\": \"bank\"}"
         );
 
-        Transaction bankTransaction = Transaction.builder()
+        Transaction testBankTransaction = Transaction.builder()
                 .id(3L)
                 .sourceId("source-789")
-                .category(category)
+                .category(testCategory)
                 .build();
 
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future =
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture =
                 CompletableFuture.completedFuture(
-                        createSendResult(bankFeedSource.sourceId(),
+                        createSendResult(testBankFeedSource.sourceId(),
                                 KafkaTopics.CATEGORISED_TRANSACTIONS,
                                 1,
-                                458L)
+                                458L,
+                                testBankFeedSource)
                 );
 
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(bankTransaction, bankFeedSource);
+        testProducer.publish(testBankTransaction, testBankFeedSource);
 
         // Assert
-        ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<NormalisedTransaction> valueCaptor = ArgumentCaptor.forClass(NormalisedTransaction.class);
+        ArgumentCaptor<String> testTopicCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> testKeyCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<NormalisedTransaction> testValueCaptor = ArgumentCaptor.forClass(NormalisedTransaction.class);
 
-        verify(kafkaTemplate).send(topicCaptor.capture(), keyCaptor.capture(), valueCaptor.capture());
+        verify(testKafkaTemplate).send(testTopicCaptor.capture(), testKeyCaptor.capture(), testValueCaptor.capture());
 
-        assertEquals(KafkaTopics.CATEGORISED_TRANSACTIONS, topicCaptor.getValue());
-        assertEquals(bankFeedSource.sourceId(), keyCaptor.getValue());
-        assertEquals(bankFeedSource, valueCaptor.getValue());
+        assertEquals(KafkaTopics.CATEGORISED_TRANSACTIONS, testTopicCaptor.getValue());
+        assertEquals(testBankFeedSource.sourceId(), testKeyCaptor.getValue());
+        assertEquals(testBankFeedSource, testValueCaptor.getValue());
     }
 
 
@@ -200,49 +201,49 @@ class CategorisedTransactionProducerTest {
     @Test
     void publish_shouldNotModifyOriginalTransaction() {
         // Arrange
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = CompletableFuture.completedFuture(
-                createSendResult(sourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 459L)
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = CompletableFuture.completedFuture(
+                createSendResult(testSourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 459L, testSourceTransaction)
         );
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Act
-        producer.publish(transaction, sourceTransaction);
+        testProducer.publish(testTransaction, testSourceTransaction);
 
         // Assert
         // Verify transaction remains unchanged
-        assertEquals("source-123", transaction.getSourceId());
-        assertEquals(category, transaction.getCategory());
-        verify(kafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
+        assertEquals("source-123", testTransaction.getSourceId());
+        assertEquals(testCategory, testTransaction.getCategory());
+        verify(testKafkaTemplate).send(anyString(), anyString(), any(NormalisedTransaction.class));
     }
 
     @Test
     void publish_shouldNotModifyOriginalSource() {
         // Arrange
-        CompletableFuture<SendResult<String, NormalisedTransaction>> future = CompletableFuture.completedFuture(
-                createSendResult(sourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 460L)
+        CompletableFuture<SendResult<String, NormalisedTransaction>> testFuture = CompletableFuture.completedFuture(
+                createSendResult(testSourceTransaction.sourceId(), KafkaTopics.CATEGORISED_TRANSACTIONS, 0, 460L, testSourceTransaction)
         );
 
-        when(kafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
-                .thenReturn(future);
+        when(testKafkaTemplate.send(anyString(), anyString(), any(NormalisedTransaction.class)))
+                .thenReturn(testFuture);
 
         // Keep original values
-        String originalSourceId = sourceTransaction.sourceId();
-        SourceType originalSourceType = sourceTransaction.sourceType();
-        BigDecimal originalAmount = sourceTransaction.amount();
+        String testOriginalSourceId = testSourceTransaction.sourceId();
+        SourceType testOriginalSourceType = testSourceTransaction.sourceType();
+        BigDecimal testOriginalAmount = testSourceTransaction.amount();
 
         // Act
-        producer.publish(transaction, sourceTransaction);
+        testProducer.publish(testTransaction, testSourceTransaction);
 
         // Assert
         // Verify source remains unchanged
-        assertEquals(originalSourceId, sourceTransaction.sourceId());
-        assertEquals(originalSourceType, sourceTransaction.sourceType());
-        assertEquals(originalAmount, sourceTransaction.amount());
+        assertEquals(testOriginalSourceId, testSourceTransaction.sourceId());
+        assertEquals(testOriginalSourceType, testSourceTransaction.sourceType());
+        assertEquals(testOriginalAmount, testSourceTransaction.amount());
     }
 
-    private SendResult<String, NormalisedTransaction> createSendResult(String key, String topic, int partition, long offset) {
-        ProducerRecord<String, NormalisedTransaction> producerRecord = new ProducerRecord<>(topic, partition, null, key, sourceTransaction);
+    private SendResult<String, NormalisedTransaction> createSendResult(String key, String topic, int partition, long offset, NormalisedTransaction value) {
+        ProducerRecord<String, NormalisedTransaction> producerRecord = new ProducerRecord<>(topic, partition, null, key, value);
         RecordMetadata recordMetadata = mock(RecordMetadata.class);
         when(recordMetadata.topic()).thenReturn(topic);
         when(recordMetadata.partition()).thenReturn(partition);

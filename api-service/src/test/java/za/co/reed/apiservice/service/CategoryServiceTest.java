@@ -21,7 +21,6 @@ import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.dto.response.CategoryResponse;
 import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
 import za.co.reed.apiservice.exception.ApiNotFoundException;
-import za.co.reed.apiservice.service.RedisCacheService;
 import za.co.reed.persistence.entity.Category;
 import za.co.reed.persistence.repository.CategoryRepository;
 
@@ -40,19 +39,19 @@ import static org.mockito.Mockito.*;
 class CategoryServiceTest {
 
     @Mock
-    private CategoryRepository categoryRepository;
+    private CategoryRepository testCategoryRepository;
 
     @Mock
-    private RedisCacheService cacheService;
+    private RedisCacheService testCacheService;
 
     @Mock
-    private CacheKeyBuilder cacheKeyBuilder;
+    private CacheKeyBuilder testCacheKeyBuilder;
 
     @Mock
-    private CacheConfigProperties cacheConfigProperties;
+    private CacheConfigProperties testCacheConfigProperties;
 
     @InjectMocks
-    private CategoryService categoryService;
+    private CategoryService testCategoryService;
 
     private Category testCategory;
 
@@ -67,152 +66,152 @@ class CategoryServiceTest {
         testCategory.setMccCodes("5411,5422");
 
         // Configure cache properties mock
-        when(cacheConfigProperties.getCategories()).thenReturn(3600);
+        when(testCacheConfigProperties.getCategories()).thenReturn(3600);
 
         // Common stubbing for cache miss (most tests will need this)
         // Individual tests can override this if they want to test cache hit
-        when(cacheKeyBuilder.getKey(anyString(), any(Object[].class))).thenReturn("cache-key");
-        when(cacheService.get(anyString(), any(Class.class))).thenReturn(Optional.empty());
+        when(testCacheKeyBuilder.getKey(anyString(), any(Object[].class))).thenReturn("cache-key");
+        when(testCacheService.get(anyString(), any(Class.class))).thenReturn(Optional.empty());
     }
 
     @Test
     void list_shouldReturnPaginatedCategories() {
         // Given
-        List<Category> categories = Collections.singletonList(testCategory);
-        Page<Category> categoryPage = new PageImpl<>(categories, PageRequest.of(0, 10, Sort.Direction.ASC, "code"), 1);
-        when(cacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
-        when(cacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
-        when(categoryRepository.findAll(any(PageRequest.class))).thenReturn(categoryPage);
+        List<Category> testCategories = Collections.singletonList(testCategory);
+        Page<Category> testCategoryPage = new PageImpl<>(testCategories, PageRequest.of(0, 10, Sort.Direction.ASC, "code"), 1);
+        when(testCacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
+        when(testCacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
+        when(testCategoryRepository.findAll(any(PageRequest.class))).thenReturn(testCategoryPage);
 
         // When
-        ResponseEntity<DataResponse<CategoryResponse>> response = categoryService.list(0, 10, "code", "ASC");
+        ResponseEntity<DataResponse<CategoryResponse>> testResponse = testCategoryService.list(0, 10, "code", "ASC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
-        assertThat(response.getBody().getTotalCount()).isEqualTo(1);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getBody().getTotalCount()).isEqualTo(1);
 
-        CategoryResponse categoryResponse = response.getBody().getData().get(0);
-        assertThat(categoryResponse.getCode()).isEqualTo("GROCERIES");
-        assertThat(categoryResponse.getLabel()).isEqualTo("Groceries");
+        CategoryResponse testCategoryResponse = testResponse.getBody().getData().get(0);
+        assertThat(testCategoryResponse.getCode()).isEqualTo("GROCERIES");
+        assertThat(testCategoryResponse.getLabel()).isEqualTo("Groceries");
 
         // Verify cache was called
-        verify(cacheService).put(anyString(), any(DataResponse.class), any());
+        verify(testCacheService).put(anyString(), any(DataResponse.class), any());
     }
 
     @Test
     void list_shouldReturnEmptyResponseWhenNoCategories() {
         // Given
-        Page<Category> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
-        when(categoryRepository.findAll(any(PageRequest.class))).thenReturn(emptyPage);
+        Page<Category> testEmptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        when(testCategoryRepository.findAll(any(PageRequest.class))).thenReturn(testEmptyPage);
 
         // When
-        ResponseEntity<DataResponse<CategoryResponse>> response = categoryService.list(0, 10, "code", "ASC");
+        ResponseEntity<DataResponse<CategoryResponse>> testResponse = testCategoryService.list(0, 10, "code", "ASC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
     }
 
     @Test
     void list_shouldHandleExceptionAndReturnInternalServerError() {
         // Given
-        when(categoryRepository.findAll(any(PageRequest.class))).thenThrow(new RuntimeException("Database error"));
+        when(testCategoryRepository.findAll(any(PageRequest.class))).thenThrow(new RuntimeException("Database error"));
 
         // When & Then
-        assertThatThrownBy(() -> categoryService.list(0, 10, "code", "ASC"))
+        assertThatThrownBy(() -> testCategoryService.list(0, 10, "code", "ASC"))
                 .isInstanceOf(ApiInternalServerErrorException.class);
     }
 
     @Test
     void getById_shouldReturnCategoryWhenFound() {
         // Given
-        UUID categoryId = testCategory.getExternalId();
-        when(categoryRepository.findByExternalId(categoryId)).thenReturn(testCategory);
+        UUID testCategoryId = testCategory.getExternalId();
+        when(testCategoryRepository.findByExternalId(testCategoryId)).thenReturn(testCategory);
 
         // When
-        ResponseEntity<CategoryResponse> response = categoryService.getById(categoryId);
+        ResponseEntity<CategoryResponse> testResponse = testCategoryService.getById(testCategoryId);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getCode()).isEqualTo("GROCERIES");
-        assertThat(response.getBody().getLabel()).isEqualTo("Groceries");
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getCode()).isEqualTo("GROCERIES");
+        assertThat(testResponse.getBody().getLabel()).isEqualTo("Groceries");
     }
 
     @Test
     void getById_shouldReturnNotFoundWhenCategoryDoesNotExist() {
         // Given
-        UUID categoryId = UUID.randomUUID();
+        UUID testCategoryId = UUID.randomUUID();
 
         // When
-        when(cacheService.get(any(String.class), any(Class.class))).thenReturn(Optional.empty());
-        when(categoryRepository.findByExternalId(any(UUID.class))).thenReturn(null);
+        when(testCacheService.get(any(String.class), any(Class.class))).thenReturn(Optional.empty());
+        when(testCategoryRepository.findByExternalId(any(UUID.class))).thenReturn(null);
 
         // Then
-        assertThatThrownBy(() -> categoryService.getById(categoryId)).isInstanceOf(ApiNotFoundException.class);
+        assertThatThrownBy(() -> testCategoryService.getById(testCategoryId)).isInstanceOf(ApiNotFoundException.class);
     }
 
     @Test
     void getById_shouldHandleExceptionAndReturnInternalServerError() {
         // Given
-        UUID categoryId = UUID.randomUUID();
+        UUID testCategoryId = UUID.randomUUID();
 
         // When
-        when(categoryRepository.findByExternalId(categoryId)).thenThrow(new RuntimeException("Database error"));
+        when(testCategoryRepository.findByExternalId(testCategoryId)).thenThrow(new RuntimeException("Database error"));
 
         // When & Then
-        assertThatThrownBy(() -> categoryService.getById(categoryId)).isInstanceOf(ApiInternalServerErrorException.class);
+        assertThatThrownBy(() -> testCategoryService.getById(testCategoryId)).isInstanceOf(ApiInternalServerErrorException.class);
     }
 
     @Test
     void getByMccCodes_shouldReturnMatchingCategories() {
         // Given
-        List<Category> categories = Collections.singletonList(testCategory);
-        Page<Category> categoryPage = new PageImpl<>(categories, PageRequest.of(0, 10, Sort.Direction.ASC, "code"), 1);
-        when(categoryRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(categoryPage);
+        List<Category> testCategories = Collections.singletonList(testCategory);
+        Page<Category> testCategoryPage = new PageImpl<>(testCategories, PageRequest.of(0, 10, Sort.Direction.ASC, "code"), 1);
+        when(testCategoryRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testCategoryPage);
 
         // When
-        ResponseEntity<DataResponse<CategoryResponse>> response = categoryService.getByMccCodes("5411", 0, 10, "code",
+        ResponseEntity<DataResponse<CategoryResponse>> testResponse = testCategoryService.getByMccCodes("5411", 0, 10, "code",
                 "ASC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
 
-        CategoryResponse categoryResponse = response.getBody().getData().get(0);
-        assertThat(categoryResponse.getCode()).isEqualTo("GROCERIES");
+        CategoryResponse testCategoryResponse = testResponse.getBody().getData().get(0);
+        assertThat(testCategoryResponse.getCode()).isEqualTo("GROCERIES");
     }
 
     @Test
     void getByMccCodes_shouldReturnEmptyResponseWhenNoMatches() {
         // Given
-        Page<Category> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
-        when(cacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
-        when(cacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
-        when(categoryRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(emptyPage);
+        Page<Category> testEmptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        when(testCacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
+        when(testCacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
+        when(testCategoryRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testEmptyPage);
 
         // When
-        ResponseEntity<DataResponse<CategoryResponse>> response = categoryService.getByMccCodes("9999", 0, 10, "code",
+        ResponseEntity<DataResponse<CategoryResponse>> testResponse = testCategoryService.getByMccCodes("9999", 0, 10, "code",
                 "ASC");
 
         // Then
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).isNull();
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).isNull();
     }
 
     @Test
     void getByMccCodes_shouldHandleExceptionAndReturnInternalServerError() {
         // Given
-        when(cacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
-        when(cacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
-        when(categoryRepository.findAll(any(Specification.class), any(PageRequest.class)))
+        when(testCacheKeyBuilder.getKey(anyString(), any(), any(), any(), any())).thenReturn("cache-key");
+        when(testCacheService.get(anyString(), eq(DataResponse.class))).thenReturn(Optional.empty());
+        when(testCategoryRepository.findAll(any(Specification.class), any(PageRequest.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When & Then
-        assertThatThrownBy(() -> categoryService.getByMccCodes("5411", 0, 10, "code", "ASC"))
+        assertThatThrownBy(() -> testCategoryService.getByMccCodes("5411", 0, 10, "code", "ASC"))
                 .isInstanceOf(ApiInternalServerErrorException.class);
     }
 }
