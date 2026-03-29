@@ -29,26 +29,26 @@ import static org.mockito.Mockito.*;
 class CategorisationServiceTest {
 
     @Mock
-    private RulesEngine rulesEngine;
+    private RulesEngine testRulesEngine;
 
     @Mock
-    private Optional<MlClassifier> mlClassifier;
+    private Optional<MlClassifier> testMlClassifier;
 
     @Mock
-    private CategoryRepository categoryRepository;
+    private CategoryRepository testCategoryRepository;
 
     @InjectMocks
-    private CategorisationService categorisationService;
+    private CategorisationService testCategorisationService;
 
-    private NormalisedTransaction sourceTransaction;
-    private Transaction transaction;
-    private Category rulesCategory;
-    private Category mlCategory;
-    private Category uncategorisedCategory;
+    private NormalisedTransaction testSourceTransaction;
+    private Transaction testTransaction;
+    private Category testRulesCategory;
+    private Category testMlCategory;
+    private Category testUncategorisedCategory;
 
     @BeforeEach
     void setUp() {
-        sourceTransaction = new NormalisedTransaction(
+        testSourceTransaction = new NormalisedTransaction(
                 "source-123",
                 SourceType.CARD_NETWORK,
                 UUID.randomUUID().toString(),
@@ -61,150 +61,150 @@ class CategorisationServiceTest {
                 "REF123"
         );
 
-        transaction = new Transaction();
-        transaction.setId(1L);
-        transaction.setSourceId("source-123");
+        testTransaction = new Transaction();
+        testTransaction.setId(1L);
+        testTransaction.setSourceId("source-123");
 
-        rulesCategory = new Category();
-        rulesCategory.setId(1L);
-        rulesCategory.setCode("GROCERIES");
+        testRulesCategory = new Category();
+        testRulesCategory.setId(1L);
+        testRulesCategory.setCode("GROCERIES");
 
-        mlCategory = new Category();
-        mlCategory.setId(2L);
-        mlCategory.setCode("ENTERTAINMENT");
+        testMlCategory = new Category();
+        testMlCategory.setId(2L);
+        testMlCategory.setCode("ENTERTAINMENT");
 
-        uncategorisedCategory = new Category();
-        uncategorisedCategory.setId(999L);
-        uncategorisedCategory.setCode("uncategorised");
+        testUncategorisedCategory = new Category();
+        testUncategorisedCategory.setId(999L);
+        testUncategorisedCategory.setCode("uncategorised");
     }
 
     @Test
     void categorise_shouldUseRulesEngineWhenCategoryFound() {
         // Given
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.of(rulesCategory));
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.of(testRulesCategory));
 
         // When
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Then
-        assertEquals(rulesCategory, transaction.getCategory());
-        verify(rulesEngine).categorise(sourceTransaction);
-        verifyNoInteractions(mlClassifier);
-        verify(categoryRepository, never()).uncategorised();
+        assertEquals(testRulesCategory, testTransaction.getCategory());
+        verify(testRulesEngine).categorise(testSourceTransaction);
+        verifyNoInteractions(testMlClassifier);
+        verify(testCategoryRepository, never()).uncategorised();
     }
 
     @Test
     void categorise_shouldUseUncategorisedFallbackWhenBothRulesAndMlReturnEmpty() {
         // Arrange
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.empty());
-        when(mlClassifier.isPresent()).thenReturn(false);
-        when(categoryRepository.uncategorised()).thenReturn(uncategorisedCategory);
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testMlClassifier.isPresent()).thenReturn(false);
+        when(testCategoryRepository.uncategorised()).thenReturn(testUncategorisedCategory);
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(uncategorisedCategory, transaction.getCategory());
-        verify(rulesEngine).categorise(sourceTransaction);
-        verify(categoryRepository).uncategorised();
+        assertEquals(testUncategorisedCategory, testTransaction.getCategory());
+        verify(testRulesEngine).categorise(testSourceTransaction);
+        verify(testCategoryRepository).uncategorised();
     }
 
     @Test
     void categorise_shouldUseUncategorisedFallbackWhenMlClassifierReturnsEmpty() {
         // Arrange
-        MlClassifier mockMlClassifier = mock(MlClassifier.class);
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.empty());
-        when(mlClassifier.isPresent()).thenReturn(true);
-        when(mlClassifier.get()).thenReturn(mockMlClassifier);
-        when(mockMlClassifier.classify(sourceTransaction)).thenReturn(Optional.empty());
-        when(categoryRepository.uncategorised()).thenReturn(uncategorisedCategory);
+        MlClassifier testMockMlClassifier = mock(MlClassifier.class);
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testMlClassifier.isPresent()).thenReturn(true);
+        when(testMlClassifier.get()).thenReturn(testMockMlClassifier);
+        when(testMockMlClassifier.classify(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testCategoryRepository.uncategorised()).thenReturn(testUncategorisedCategory);
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(uncategorisedCategory, transaction.getCategory());
-        verify(rulesEngine).categorise(sourceTransaction);
-        verify(mockMlClassifier).classify(sourceTransaction);
-        verify(categoryRepository).uncategorised();
+        assertEquals(testUncategorisedCategory, testTransaction.getCategory());
+        verify(testRulesEngine).categorise(testSourceTransaction);
+        verify(testMockMlClassifier).classify(testSourceTransaction);
+        verify(testCategoryRepository).uncategorised();
     }
 
     @Test
     void categorise_shouldHandleMlClassifierNotPresent() {
         // Arrange
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.empty());
-        when(mlClassifier.isPresent()).thenReturn(false);
-        when(categoryRepository.uncategorised()).thenReturn(uncategorisedCategory);
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testMlClassifier.isPresent()).thenReturn(false);
+        when(testCategoryRepository.uncategorised()).thenReturn(testUncategorisedCategory);
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(uncategorisedCategory, transaction.getCategory());
-        verify(rulesEngine).categorise(sourceTransaction);
-        verify(categoryRepository).uncategorised();
+        assertEquals(testUncategorisedCategory, testTransaction.getCategory());
+        verify(testRulesEngine).categorise(testSourceTransaction);
+        verify(testCategoryRepository).uncategorised();
     }
 
     @Test
     void categorise_shouldLogAppropriateTierForRulesMatch() {
         // Arrange
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.of(rulesCategory));
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.of(testRulesCategory));
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(rulesCategory, transaction.getCategory());
+        assertEquals(testRulesCategory, testTransaction.getCategory());
         // Log verification would require a different approach with @Captor
     }
 
     @Test
     void categorise_shouldLogAppropriateTierForMlMatch() {
         // Arrange
-        MlClassifier mockMlClassifier = mock(MlClassifier.class);
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.empty());
-        when(mlClassifier.isPresent()).thenReturn(true);
-        when(mlClassifier.get()).thenReturn(mockMlClassifier);
-        when(mockMlClassifier.classify(sourceTransaction)).thenReturn(Optional.of(mlCategory));
+        MlClassifier testMockMlClassifier = mock(MlClassifier.class);
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testMlClassifier.isPresent()).thenReturn(true);
+        when(testMlClassifier.get()).thenReturn(testMockMlClassifier);
+        when(testMockMlClassifier.classify(testSourceTransaction)).thenReturn(Optional.of(testMlCategory));
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(mlCategory, transaction.getCategory());
+        assertEquals(testMlCategory, testTransaction.getCategory());
     }
 
     @Test
     void categorise_shouldLogAppropriateTierForFallback() {
         // Arrange
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.empty());
-        when(mlClassifier.isPresent()).thenReturn(false);
-        when(categoryRepository.uncategorised()).thenReturn(uncategorisedCategory);
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.empty());
+        when(testMlClassifier.isPresent()).thenReturn(false);
+        when(testCategoryRepository.uncategorised()).thenReturn(testUncategorisedCategory);
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertEquals(uncategorisedCategory, transaction.getCategory());
+        assertEquals(testUncategorisedCategory, testTransaction.getCategory());
     }
 
     @Test
     void categorise_shouldHandleNullTransactionCategoryGracefully() {
         // Arrange
-        when(rulesEngine.categorise(sourceTransaction)).thenReturn(Optional.of(rulesCategory));
+        when(testRulesEngine.categorise(testSourceTransaction)).thenReturn(Optional.of(testRulesCategory));
 
         // Act
-        categorisationService.categorise(transaction, sourceTransaction);
+        testCategorisationService.categorise(testTransaction, testSourceTransaction);
 
         // Assert
-        assertNotNull(transaction.getCategory());
-        assertEquals(rulesCategory, transaction.getCategory());
+        assertNotNull(testTransaction.getCategory());
+        assertEquals(testRulesCategory, testTransaction.getCategory());
     }
 
     @Test
     void categorise_shouldWorkWithDifferentSourceTypes() {
         // Arrange
-        NormalisedTransaction bankFeedSource = new NormalisedTransaction(
+        NormalisedTransaction testBankFeedSource = new NormalisedTransaction(
                 "source-456",
                 SourceType.BANK_FEED,
                 UUID.randomUUID().toString(),
@@ -217,17 +217,17 @@ class CategorisationServiceTest {
                 ""
         );
 
-        when(rulesEngine.categorise(bankFeedSource)).thenReturn(Optional.of(rulesCategory));
+        when(testRulesEngine.categorise(testBankFeedSource)).thenReturn(Optional.of(testRulesCategory));
 
-        Transaction bankTransaction = new Transaction();
-        bankTransaction.setId(2L);
-        bankTransaction.setSourceId("source-456");
+        Transaction testBankTransaction = new Transaction();
+        testBankTransaction.setId(2L);
+        testBankTransaction.setSourceId("source-456");
 
         // Act
-        categorisationService.categorise(bankTransaction, bankFeedSource);
+        testCategorisationService.categorise(testBankTransaction, testBankFeedSource);
 
         // Assert
-        assertEquals(rulesCategory, bankTransaction.getCategory());
-        verify(rulesEngine).categorise(bankFeedSource);
+        assertEquals(testRulesCategory, testBankTransaction.getCategory());
+        verify(testRulesEngine).categorise(testBankFeedSource);
     }
 }

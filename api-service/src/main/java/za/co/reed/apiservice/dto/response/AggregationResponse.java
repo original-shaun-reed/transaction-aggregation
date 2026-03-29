@@ -1,7 +1,5 @@
 package za.co.reed.apiservice.dto.response;
 
-import java.math.BigDecimal;
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -9,33 +7,38 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.util.Date;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Response object representing aggregated transaction data grouped by category, merchant, and time period")
 public class AggregationResponse {
-    @Schema(description = "Category code for this getKey bucket")
+
+    @Schema(description = "Category code for this aggregation bucket", example = "groceries")
     private String categoryCode;
 
-    @Schema(description = "Category label for this getKey bucket")
+    @Schema(description = "Human-readable category label for this aggregation bucket", example = "Groceries")
     private String categoryLabel;
 
-    @Schema(description = "Merchant name for this getKey bucket")
+    @Schema(description = "Merchant name for this aggregation bucket", example = "Pick n Pay")
     private String merchantName;
 
-    @Schema(description = "Merchant category code for this getKey bucket")
+    @Schema(description = "ISO 18245 Merchant Category Code for this aggregation bucket", example = "5411")
     private String merchantMcc;
 
-    @Schema(description = "Date representing the time bucket (e.g. 2026-03-01 for daily granularity, or 2026-03 for monthly granularity)" , example = "2026-03-01")
+    @Schema(description = "Date representing the time bucket (e.g., daily or monthly granularity)", example = "2026-03-01")
     private Date period;
 
-    @Schema(description = "Total spend across all transactions for this account")
+    @Schema(description = "Total spend across all transactions in this bucket", example = "1250.75")
     private BigDecimal totalSpend;
 
-    @Schema(description = "Total spend across all transactions for this account")
+    @Schema(description = "Number of transactions included in this bucket", example = "42")
     private Long transactionCount;
 
-    @Schema(description = "Total spend across all transactions for this account")
+    @Schema(description = "Total amount reversed (refunds, chargebacks) in this bucket", example = "150.00")
     private BigDecimal totalReversed;
 }

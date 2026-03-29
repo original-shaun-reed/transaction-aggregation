@@ -32,7 +32,7 @@ class CategoryControllerTest {
         private MockMvc mockMvc;
 
         @MockBean
-        private CategoryService categoryService;
+        private CategoryService testCategoryService;
 
         private final UUID testCategoryId = UUID.fromString("223e4567-e89b-12d3-a456-426614174001");
 
@@ -40,7 +40,7 @@ class CategoryControllerTest {
         @WithMockUser
         void list_shouldReturnPaginatedCategories() throws Exception {
                 // Given
-                CategoryResponse categoryResponse = CategoryResponse.builder()
+                CategoryResponse testCategoryResponse = CategoryResponse.builder()
                                 .id(testCategoryId)
                                 .code("GROCERIES")
                                 .label("Groceries")
@@ -49,14 +49,14 @@ class CategoryControllerTest {
                                 .build();
 
                 DataResponse<CategoryResponse> mockResponse = DataResponse.<CategoryResponse>builder()
-                                .data(Collections.singletonList(categoryResponse))
+                                .data(Collections.singletonList(testCategoryResponse))
                                 .totalCount(1L)
                                 .page(0)
                                 .pageSize(20)
                                 .hasMore(false)
                                 .build();
 
-                when(categoryService.list(anyInt(), anyInt(), anyString(), anyString()))
+                when(testCategoryService.list(anyInt(), anyInt(), anyString(), anyString()))
                                 .thenReturn(ResponseEntity.ok(mockResponse));
 
                 // When & Then
@@ -88,7 +88,7 @@ class CategoryControllerTest {
                                 .hasMore(false)
                                 .build();
 
-                when(categoryService.list(0, 20, "asc", "path"))
+                when(testCategoryService.list(0, 20, "asc", "path"))
                                 .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
                 // When & Then - No parameters should use defaults
@@ -100,7 +100,7 @@ class CategoryControllerTest {
         @WithMockUser
         void getById_shouldReturnCategoryWhenFound() throws Exception {
                 // Given
-                CategoryResponse categoryResponse = CategoryResponse.builder()
+                CategoryResponse testCategoryResponse = CategoryResponse.builder()
                                 .id(testCategoryId)
                                 .code("GROCERIES")
                                 .label("Groceries")
@@ -108,8 +108,8 @@ class CategoryControllerTest {
                                 .mccCodes("5411,5422")
                                 .build();
 
-                when(categoryService.getById(testCategoryId))
-                                .thenReturn(new ResponseEntity<>(categoryResponse,
+                when(testCategoryService.getById(testCategoryId))
+                                .thenReturn(new ResponseEntity<>(testCategoryResponse,
                                                 HttpStatus.OK));
 
                 // When & Then
@@ -125,7 +125,7 @@ class CategoryControllerTest {
         @WithMockUser
         void getById_shouldReturn404WhenNotFound() throws Exception {
                 // Given
-                when(categoryService.getById(testCategoryId))
+                when(testCategoryService.getById(testCategoryId))
                                 .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
                 // When & Then
@@ -137,7 +137,7 @@ class CategoryControllerTest {
         @WithMockUser
         void getByMccCodes_shouldReturnFilteredCategories() throws Exception {
                 // Given
-                CategoryResponse categoryResponse = CategoryResponse.builder()
+                CategoryResponse testCategoryResponse = CategoryResponse.builder()
                                 .id(testCategoryId)
                                 .code("GROCERIES")
                                 .label("Groceries")
@@ -146,14 +146,14 @@ class CategoryControllerTest {
                                 .build();
 
                 DataResponse<CategoryResponse> mockResponse = DataResponse.<CategoryResponse>builder()
-                                .data(Collections.singletonList(categoryResponse))
+                                .data(Collections.singletonList(testCategoryResponse))
                                 .totalCount(1L)
                                 .page(0)
                                 .pageSize(20)
                                 .hasMore(false)
                                 .build();
 
-                when(categoryService.getByMccCodes(anyString(), anyInt(), anyInt(), anyString(), anyString()))
+                when(testCategoryService.getByMccCodes(anyString(), anyInt(), anyInt(), anyString(), anyString()))
                                 .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
                 // When & Then
@@ -183,7 +183,7 @@ class CategoryControllerTest {
 
 
 
-                when(categoryService.getByMccCodes(anyString(), any(Integer.class), any(Integer.class),
+                when(testCategoryService.getByMccCodes(anyString(), any(Integer.class), any(Integer.class),
                                 any(String.class), any(String.class)))
                         .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
@@ -205,7 +205,7 @@ class CategoryControllerTest {
         @WithMockUser
         void list_shouldReturn500WhenServiceThrowsException() throws Exception {
                 // Given
-                when(categoryService.list(any(Integer.class), any(Integer.class), any(String.class), any(String.class)))
+                when(testCategoryService.list(any(Integer.class), any(Integer.class), any(String.class), any(String.class)))
                                 .thenThrow(new RuntimeException("Service error"));
 
                 // When & Then

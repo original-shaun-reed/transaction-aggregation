@@ -1,10 +1,5 @@
 package za.co.reed.apiservice.service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -14,14 +9,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
-import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.dto.response.TransactionResponse;
+import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
 import za.co.reed.apiservice.exception.ApiNotFoundException;
 import za.co.reed.apiservice.specification.TransactionSpecification;
+import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.persistence.entity.Transaction;
 import za.co.reed.persistence.repository.TransactionRepository;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -48,7 +48,7 @@ public class TransactionService {
             throw new ApiNotFoundException("Transaction not found: " + externalId.toString());
         }
 
-        return ResponseEntity.ok(buildTransactionResponse(transaction));
+        return ResponseEntity.ok(TransactionResponse.of(transaction));
     }
 
     public ResponseEntity<DataResponse<TransactionResponse>> merchantSearch(String merchantName, Date from, Date to,
@@ -130,46 +130,11 @@ public class TransactionService {
             return new DataResponse<>();
         }
 
-        List<TransactionResponse> responseList = transactions.getContent().stream()
+        List<TransactionResponse> data = transactions.getContent().stream()
                 .filter(Objects::nonNull)
-                .map(this::buildTransactionResponse)
+                .map(TransactionResponse::of)
                 .toList();
 
-        DataResponse response = DataResponse.<TransactionResponse>builder()
-                .data(responseList)
-                .totalCount(transactions.getTotalElements())
-                .totalPages(transactions.getTotalPages())
-                .page(transactions.getPageable().getPageNumber())
-                .pageSize(transactions.getNumberOfElements())
-                .hasMore(transactions.hasNext())
-                .build();
-
-        return response;
-    }
-
-    private TransactionResponse buildTransactionResponse(Transaction transaction) {
-        return TransactionResponse.builder()
-                .id(transaction.getExternalId())
-                .sourceId(transaction.getSourceId())
-                .sourceType(transaction.getSourceType())
-                .accountId(transaction.getAccountId())
-                .amount(transaction.getAmount())
-                .categoryId(transaction.getCategory().getExternalId())
-                .currency(transaction.getCurrency())
-                .merchantName(transaction.getMerchantName())
-                .merchantMcc(transaction.getMerchantMcc())
-                .transactedAt(transaction.getTransactedAt())
-                .status(transaction.getStatus())
-                .createdAt(transaction.getCreatedAt())
-                .build();
-    }
-
-    private String escape(String value) {
-        if (value == null) {
-            return StringUtils.EMPTY;
-        }
-
-        // Escape quotes within quoted fields
-        return value.replace("\"", "\"\"");
+        return DataResponse.of(data, transactions);
     }
 }

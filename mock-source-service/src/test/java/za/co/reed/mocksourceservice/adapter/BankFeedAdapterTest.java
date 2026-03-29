@@ -36,111 +36,94 @@ import static org.mockito.Mockito.*;
 class BankFeedAdapterTest {
 
     @Mock
-    private ObjectMapper objectMapper;
-    
-    private BankFeedAdapter bankFeedAdapter;
-    
-    private BankFeedRecord sampleRecord;
-    
+    private ObjectMapper testObjectMapper;
+
+    private BankFeedAdapter testBankFeedAdapter;
+
+    private BankFeedRecord testSampleRecord;
+
     @BeforeEach
     void setUp() {
-        bankFeedAdapter = new BankFeedAdapter(objectMapper);
-        
-        sampleRecord = new BankFeedRecord(
-            "BF-12345",
-            "ACC-0001",
-            "Test Merchant",
-            new BigDecimal("100.50"),
-            Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600),
-            "SETTLED"
+        testBankFeedAdapter = new BankFeedAdapter(testObjectMapper);
+
+        testSampleRecord = new BankFeedRecord(
+                "BF-12345",
+                "ACC-0001",
+                "Test Merchant",
+                new BigDecimal("100.50"),
+                Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600),
+                "SETTLED"
         );
     }
-    
+
     @Test
     void normalise_returnsEmptyList_whenPayloadIsNotList() {
-        // Given
-        Object invalidPayload = "not a list";
-        
-        // When
-        List<NormalisedTransaction> result = bankFeedAdapter.normalise(invalidPayload);
-        
-        // Then
-        assertThat(result).isEmpty();
+        Object testInvalidPayload = "not a list";
+
+        List<NormalisedTransaction> testResult = testBankFeedAdapter.normalise(testInvalidPayload);
+
+        assertThat(testResult).isEmpty();
     }
-    
+
     @Test
     void normalise_returnsNormalisedTransactions_whenPayloadIsValid() throws JsonProcessingException {
-        // Given
-        List<BankFeedRecord> records = List.of(sampleRecord);
-        when(objectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{\"raw\": \"payload\"}");
-        
-        // When
-        List<NormalisedTransaction> result = bankFeedAdapter.normalise(records);
-        
-        // Then
-        assertThat(result).hasSize(1);
-        
-        NormalisedTransaction transaction = result.get(0);
-        assertThat(transaction.sourceId()).isEqualTo("BF-12345");
-        assertThat(transaction.sourceType()).isEqualTo(SourceType.BANK_FEED);
-        assertThat(transaction.accountId()).isEqualTo("ACC-0001");
-        assertThat(transaction.amount()).isEqualTo(new BigDecimal("100.50"));
-        assertThat(transaction.currency()).isEqualTo(Currency.getInstance("ZAR"));
-        assertThat(transaction.merchantName()).isEqualTo("Test Merchant");
-        assertThat(transaction.merchantMcc()).isNull(); // Bank feed doesn't provide MCC
-        assertThat(transaction.status()).isEqualTo(TransactionStatus.SETTLED);
+        List<BankFeedRecord> testRecords = List.of(testSampleRecord);
+        when(testObjectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{\"raw\": \"payload\"}");
+
+        List<NormalisedTransaction> testResult = testBankFeedAdapter.normalise(testRecords);
+
+        assertThat(testResult).hasSize(1);
+
+        NormalisedTransaction testTransaction = testResult.get(0);
+        assertThat(testTransaction.sourceId()).isEqualTo("BF-12345");
+        assertThat(testTransaction.sourceType()).isEqualTo(SourceType.BANK_FEED);
+        assertThat(testTransaction.accountId()).isEqualTo("ACC-0001");
+        assertThat(testTransaction.amount()).isEqualTo(new BigDecimal("100.50"));
+        assertThat(testTransaction.currency()).isEqualTo(Currency.getInstance("ZAR"));
+        assertThat(testTransaction.merchantName()).isEqualTo("Test Merchant");
+        assertThat(testTransaction.merchantMcc()).isNull();
+        assertThat(testTransaction.status()).isEqualTo(TransactionStatus.SETTLED);
     }
-    
+
     @Test
     void normalise_filtersDuplicates() throws JsonProcessingException {
-        // Given
-        BankFeedRecord duplicateRecord = new BankFeedRecord(
-            "BF-12345", // Same ID
-            "ACC-0001",
-            "Another Merchant",
-            new BigDecimal("200.00"),
-            Currency.getInstance("USD"),
-            Instant.now().minusSeconds(7200),
-            "PENDING"
+        BankFeedRecord testDuplicateRecord = new BankFeedRecord(
+                "BF-12345",
+                "ACC-0001",
+                "Another Merchant",
+                new BigDecimal("200.00"),
+                Currency.getInstance("USD"),
+                Instant.now().minusSeconds(7200),
+                "PENDING"
         );
-        
-        List<BankFeedRecord> records = List.of(sampleRecord, duplicateRecord);
-        when(objectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{}");
-        
-        // When - First call
-        List<NormalisedTransaction> firstResult = bankFeedAdapter.normalise(records);
-        
-        // Then - Should only include first record (second is duplicate)
-        assertThat(firstResult).hasSize(1);
-        
-        // When - Second call with same record
-        List<NormalisedTransaction> secondResult = bankFeedAdapter.normalise(List.of(duplicateRecord));
-        
-        // Then - Should be empty (duplicate)
-        assertThat(secondResult).isEmpty();
+
+        List<BankFeedRecord> testRecords = List.of(testSampleRecord, testDuplicateRecord);
+        when(testObjectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{}");
+
+        List<NormalisedTransaction> testFirstResult = testBankFeedAdapter.normalise(testRecords);
+        assertThat(testFirstResult).hasSize(1);
+
+        List<NormalisedTransaction> testSecondResult = testBankFeedAdapter.normalise(List.of(testDuplicateRecord));
+        assertThat(testSecondResult).isEmpty();
     }
-    
+
     @Test
     void normalise_handlesJsonSerializationError() throws JsonProcessingException {
-        // Given
-        List<BankFeedRecord> records = List.of(sampleRecord);
-        when(objectMapper.writeValueAsString(any(BankFeedRecord.class)))
-            .thenThrow(new JsonProcessingException("JSON error") {});
-        
-        // When
-        List<NormalisedTransaction> result = bankFeedAdapter.normalise(records);
-        
-        // Then - Should still return transaction with fallback JSON
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).rawPayload()).isEqualTo("{}");
+        List<BankFeedRecord> testRecords = List.of(testSampleRecord);
+        when(testObjectMapper.writeValueAsString(any(BankFeedRecord.class)))
+                .thenThrow(new JsonProcessingException("JSON error") {});
+
+        List<NormalisedTransaction> testResult = testBankFeedAdapter.normalise(testRecords);
+
+        assertThat(testResult).hasSize(1);
+        assertThat(testResult.get(0).rawPayload()).isEqualTo("{}");
     }
 
     @Test
     void constructor_throwsException_whenSourceIdIsBlank() {
-        //Given,  When & Then
         assertThatThrownBy(() -> new NormalisedTransaction(
-                "", // Blank sourceId
+                "",
                 SourceType.BANK_FEED,
                 "ACC-0001",
                 new BigDecimal("100.00"),
@@ -162,7 +145,7 @@ class BankFeedAdapterTest {
                         "BF-12345",
                         SourceType.BANK_FEED,
                         "ACC-0001",
-                        new BigDecimal("-10.00"), // Negative amount
+                        new BigDecimal("-10.00"),
                         Currency.getInstance("ZAR"),
                         "Test Merchant",
                         null,
@@ -177,13 +160,12 @@ class BankFeedAdapterTest {
 
     @Test
     void constructor_throwsException_whenCurrencyIsNull() {
-        //Given,  When & Then
         assertThatThrownBy(() -> new NormalisedTransaction(
                 "BF-12345",
                 SourceType.BANK_FEED,
                 "ACC-0001",
                 new BigDecimal("100.00"),
-                null, // Null currency
+                null,
                 "Test Merchant",
                 null,
                 Instant.now().minusSeconds(3600),
@@ -193,7 +175,6 @@ class BankFeedAdapterTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("currency must not be null");
     }
-
 
     @Test
     void constructor_throwsException_whenTransactedAtIsNull() {
@@ -205,7 +186,7 @@ class BankFeedAdapterTest {
                 Currency.getInstance("ZAR"),
                 "Test Merchant",
                 null,
-                null, // Null transactedAt
+                null,
                 TransactionStatus.SETTLED,
                 "{}"
         ))
@@ -213,68 +194,50 @@ class BankFeedAdapterTest {
                 .hasMessageContaining("transactedAt must not be null");
     }
 
-    
     @Test
     void validate_doesNotThrow_whenTransactionIsValid() {
-        // Given
-        NormalisedTransaction validTransaction = new NormalisedTransaction(
-            "BF-12345",
-            SourceType.BANK_FEED,
-            "ACC-0001",
-            new BigDecimal("100.00"),
-            Currency.getInstance("ZAR"),
-            "Test Merchant",
-            null,
-            Instant.now().minusSeconds(3600),
-            TransactionStatus.SETTLED,
-            "{}"
+        NormalisedTransaction testValidTransaction = new NormalisedTransaction(
+                "BF-12345",
+                SourceType.BANK_FEED,
+                "ACC-0001",
+                new BigDecimal("100.00"),
+                Currency.getInstance("ZAR"),
+                "Test Merchant",
+                null,
+                Instant.now().minusSeconds(3600),
+                TransactionStatus.SETTLED,
+                "{}"
         );
-        
-        // When & Then - Should not throw
-        bankFeedAdapter.validate(validTransaction);
+
+        testBankFeedAdapter.validate(testValidTransaction);
     }
-    
+
     @Test
     void isDuplicate_returnsTrue_whenSourceIdAlreadySeen() {
-        // Given
-        String sourceId = "BF-12345";
-        
-        // When - First check
-        boolean firstCheck = bankFeedAdapter.isDuplicate(sourceId);
-        
-        // Then - Should be false (not a duplicate yet)
-        assertThat(firstCheck).isFalse();
-        
-        // When - Second check
-        boolean secondCheck = bankFeedAdapter.isDuplicate(sourceId);
-        
-        // Then - Should be true (duplicate)
-        assertThat(secondCheck).isTrue();
+        String testSourceId = "BF-12345";
+
+        boolean testFirstCheck = testBankFeedAdapter.isDuplicate(testSourceId);
+        assertThat(testFirstCheck).isFalse();
+
+        boolean testSecondCheck = testBankFeedAdapter.isDuplicate(testSourceId);
+        assertThat(testSecondCheck).isTrue();
     }
-    
+
     @Test
     void isDuplicate_returnsFalse_whenSourceIdIsNew() {
-        // Given
-        String sourceId = "BF-NEW-123";
-        
-        // When
-        boolean result = bankFeedAdapter.isDuplicate(sourceId);
-        
-        // Then
-        assertThat(result).isFalse();
+        String testSourceId = "BF-NEW-123";
+
+        boolean testResult = testBankFeedAdapter.isDuplicate(testSourceId);
+        assertThat(testResult).isFalse();
     }
-    
+
     @Test
     void normalise_validatesEachTransaction() throws JsonProcessingException {
-        // Given - Create a record that will produce invalid transaction
-        // We can't easily test this without mocking the toNormalised method,
-        // but the code path is that each transaction is validated via peek()
-        when(objectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{}");
-        
-        List<BankFeedRecord> records = List.of(sampleRecord);
-        
-        // When & Then - Should not throw (transaction is valid)
-        List<NormalisedTransaction> result = bankFeedAdapter.normalise(records);
-        assertThat(result).hasSize(1);
+        when(testObjectMapper.writeValueAsString(any(BankFeedRecord.class))).thenReturn("{}");
+
+        List<BankFeedRecord> testRecords = List.of(testSampleRecord);
+
+        List<NormalisedTransaction> testResult = testBankFeedAdapter.normalise(testRecords);
+        assertThat(testResult).hasSize(1);
     }
 }

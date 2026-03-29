@@ -1,26 +1,25 @@
 package za.co.reed.apiservice.service;
 
-import java.time.Duration;
-import java.util.*;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import za.co.reed.apiservice.builder.CacheKeyBuilder;
 import za.co.reed.apiservice.config.properties.CacheConfigProperties;
-import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.dto.response.CategoryResponse;
+import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
 import za.co.reed.apiservice.exception.ApiNotFoundException;
 import za.co.reed.apiservice.specification.CategorySpecification;
 import za.co.reed.persistence.entity.Category;
 import za.co.reed.persistence.repository.CategoryRepository;
+
+import java.time.Duration;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -67,10 +66,9 @@ public class CategoryService {
                 throw new ApiNotFoundException("Category not found: " + externalId.toString());
             }
 
-            CategoryResponse response = new CategoryResponse(category.getExternalId(), category.getCode(),
-                    category.getLabel(), category.getPath(), category.getMccCodes());
-
+            CategoryResponse response = CategoryResponse.of(category);
             cacheService.put(cacheKey, response, Duration.ofSeconds(cacheConfigProperties.getCategories()));
+
             return ResponseEntity.ok(response);
         } catch (ApiNotFoundException apiNotFoundException) {
             throw apiNotFoundException;
@@ -115,19 +113,11 @@ public class CategoryService {
             return new DataResponse<>();
         }
 
-        List<CategoryResponse> responseList = new ArrayList<>();
+        List<CategoryResponse> data = new ArrayList<>();
         for (Category category : categories.getContent()) {
-            responseList.add(new CategoryResponse(category.getExternalId(), category.getCode(), category.getLabel(),
-                    category.getPath(), category.getMccCodes()));
+            data.add(CategoryResponse.of(category));
         }
 
-        return DataResponse.<CategoryResponse>builder()
-                .data(responseList)
-                .totalPages(categories.getTotalPages())
-                .page(categories.getPageable().getPageNumber())
-                .pageSize(categories.getNumberOfElements())
-                .totalCount(categories.getTotalElements())
-                .hasMore(categories.hasNext())
-                .build();
+        return DataResponse.of(data, categories);
     }
 }

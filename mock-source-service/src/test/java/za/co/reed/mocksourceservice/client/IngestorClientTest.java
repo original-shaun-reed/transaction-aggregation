@@ -35,33 +35,33 @@ import static org.mockito.Mockito.*;
 class IngestorClientTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private RestTemplate testRestTemplate;
 
     @Mock
-    private IngestorProperties properties;
+    private IngestorProperties testProperties;
 
     @Mock
-    private ObjectMapper objectMapper;
+    private ObjectMapper testObjectMapper;
 
     @Captor
-    private ArgumentCaptor<HttpEntity<String>> httpEntityCaptor;
+    private ArgumentCaptor<HttpEntity<String>> testHttpEntityCaptor;
 
-    private IngestorClient client;
+    private IngestorClient testClient;
 
-    private NormalisedTransaction sampleTransaction;
+    private NormalisedTransaction testSampleTransaction;
 
     @BeforeEach
     void setUp() {
-        client = new IngestorClient(restTemplate, properties, objectMapper);
+        testClient = new IngestorClient(testRestTemplate, testProperties, testObjectMapper);
 
-        sampleTransaction = new NormalisedTransaction(
+        testSampleTransaction = new NormalisedTransaction(
                 UUID.randomUUID().toString(),
                 SourceType.BANK_FEED,
                 "ACC-12345",
                 new BigDecimal("123.45"),
                 Currency.getInstance("ZAR"),
                 "Test Merchant",
-                null, // merchantMcc
+                null,
                 Instant.now(),
                 TransactionStatus.SETTLED,
                 "{\"raw\": \"data\"}"
@@ -71,61 +71,60 @@ class IngestorClientTest {
     @Test
     void send_successfulPost_shouldCallRestTemplateWithCorrectHeaders() throws JsonProcessingException {
         // Arrange
-        String jsonBody = "{\"sourceId\":\"test-id\"}";
-        when(objectMapper.writeValueAsString(sampleTransaction)).thenReturn(jsonBody);
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"sourceId\":\"test-id\"}";
+        when(testObjectMapper.writeValueAsString(testSampleTransaction)).thenReturn(testJsonBody);
+        when(testRestTemplate.exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
                 eq(Void.class)
         )).thenReturn(ResponseEntity.ok().build());
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
 
         // Act
-        client.send(sampleTransaction);
+        testClient.send(testSampleTransaction);
 
         // Assert
-        verify(restTemplate).exchange(
+        verify(testRestTemplate).exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
-                httpEntityCaptor.capture(),
+                testHttpEntityCaptor.capture(),
                 eq(Void.class)
         );
 
-        HttpEntity<String> capturedEntity = httpEntityCaptor.getValue();
-        assertThat(capturedEntity.getBody()).isEqualTo(jsonBody);
-        
-        HttpHeaders headers = capturedEntity.getHeaders();
-        assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-        assertThat(headers.get("X-Source-Type")).containsExactly("BANK_FEED");
-        assertThat(headers.get("X-Transaction-Aggregator-Signature")).isNotNull();
-        
-        // Verify signature format
-        String signature = headers.getFirst("X-Transaction-Aggregator-Signature");
-        assertThat(signature).startsWith("sha256=");
-        assertThat(signature.length()).isGreaterThan(70); // sha256= + 64 hex chars
+        HttpEntity<String> testCapturedEntity = testHttpEntityCaptor.getValue();
+        assertThat(testCapturedEntity.getBody()).isEqualTo(testJsonBody);
+
+        HttpHeaders testHeaders = testCapturedEntity.getHeaders();
+        assertThat(testHeaders.getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(testHeaders.get("X-Source-Type")).containsExactly("BANK_FEED");
+        assertThat(testHeaders.get("X-Transaction-Aggregator-Signature")).isNotNull();
+
+        String testSignature = testHeaders.getFirst("X-Transaction-Aggregator-Signature");
+        assertThat(testSignature).startsWith("sha256=");
+        assertThat(testSignature.length()).isGreaterThan(70);
     }
 
     @Test
     void send_non2xxResponse_shouldLogWarning() throws JsonProcessingException {
         // Arrange
-        String jsonBody = "{\"sourceId\":\"test-id\"}";
-        when(objectMapper.writeValueAsString(sampleTransaction)).thenReturn(jsonBody);
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"sourceId\":\"test-id\"}";
+        when(testObjectMapper.writeValueAsString(testSampleTransaction)).thenReturn(testJsonBody);
+        when(testRestTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
                 eq(Void.class)
         )).thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
 
         // Act
-        client.send(sampleTransaction);
+        testClient.send(testSampleTransaction);
 
-        // Assert - should not throw, just log warning
-        verify(restTemplate).exchange(
+        // Assert
+        verify(testRestTemplate).exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
@@ -136,11 +135,11 @@ class IngestorClientTest {
     @Test
     void send_restTemplateThrowsException_shouldWrapInRuntimeException() throws JsonProcessingException {
         // Arrange
-        String jsonBody = "{\"sourceId\":\"test-id\"}";
-        when(objectMapper.writeValueAsString(sampleTransaction)).thenReturn(jsonBody);
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"sourceId\":\"test-id\"}";
+        when(testObjectMapper.writeValueAsString(testSampleTransaction)).thenReturn(testJsonBody);
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testRestTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
@@ -148,7 +147,7 @@ class IngestorClientTest {
         )).thenThrow(new RestClientException("Network error"));
 
         // Act & Assert
-        assertThatThrownBy(() -> client.send(sampleTransaction))
+        assertThatThrownBy(() -> testClient.send(testSampleTransaction))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to send transaction to ingestor")
                 .hasCauseInstanceOf(RestClientException.class);
@@ -157,11 +156,11 @@ class IngestorClientTest {
     @Test
     void send_jsonSerializationFails_shouldThrowRuntimeException() throws JsonProcessingException {
         // Arrange
-        when(objectMapper.writeValueAsString(sampleTransaction))
+        when(testObjectMapper.writeValueAsString(testSampleTransaction))
                 .thenThrow(new RuntimeException("JSON serialization failed"));
 
         // Act & Assert
-        assertThatThrownBy(() -> client.send(sampleTransaction))
+        assertThatThrownBy(() -> testClient.send(testSampleTransaction))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to send transaction to ingestor")
                 .hasCauseInstanceOf(RuntimeException.class);
@@ -170,51 +169,43 @@ class IngestorClientTest {
     @Test
     void sign_validPayload_shouldReturnCorrectHmacSignature() throws JsonProcessingException {
         // Arrange
-        String payload = "test-payload";
-        String secret = "test-secret-key-12345";
-        when(properties.getWebhookSecret()).thenReturn(secret);
-
-        // Act - We need to test the private method via reflection or by verifying the signature in send test
-        // Since sign() is private, we'll verify it works through the public send method
-        String jsonBody = "{\"test\":\"data\"}";
-        when(objectMapper.writeValueAsString(sampleTransaction)).thenReturn(jsonBody);
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"test\":\"data\"}";
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testObjectMapper.writeValueAsString(testSampleTransaction)).thenReturn(testJsonBody);
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testRestTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
                 eq(Void.class)
         )).thenReturn(ResponseEntity.ok().build());
 
-        client.send(sampleTransaction);
+        // Act
+        testClient.send(testSampleTransaction);
 
-        // Assert - Verify signature was computed and added to headers
-        verify(restTemplate).exchange(
+        // Assert
+        verify(testRestTemplate).exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
-                httpEntityCaptor.capture(),
+                testHttpEntityCaptor.capture(),
                 eq(Void.class)
         );
 
-        HttpEntity<String> capturedEntity = httpEntityCaptor.getValue();
-        String signature = capturedEntity.getHeaders().getFirst("X-Transaction-Aggregator-Signature");
-        
-        assertThat(signature).isNotNull();
-        assertThat(signature).startsWith("sha256=");
-        // HMAC-SHA256 produces 64 hex characters
-        assertThat(signature.substring(7)).hasSize(64);
+        String testSignature = testHttpEntityCaptor.getValue().getHeaders().getFirst("X-Transaction-Aggregator-Signature");
+        assertThat(testSignature).isNotNull();
+        assertThat(testSignature).startsWith("sha256=");
+        assertThat(testSignature.substring(7)).hasSize(64);
     }
 
     @Test
     void sign_emptySecret_shouldThrowIllegalArgumentException() throws JsonProcessingException {
         // Arrange
-        when(properties.getWebhookSecret()).thenReturn("");
-        String jsonBody = "{\"test\":\"data\"}";
-        when(objectMapper.writeValueAsString(sampleTransaction)).thenReturn(jsonBody);
+        when(testProperties.getWebhookSecret()).thenReturn("");
+        String testJsonBody = "{\"test\":\"data\"}";
+        when(testObjectMapper.writeValueAsString(testSampleTransaction)).thenReturn(testJsonBody);
 
         // Act & Assert
-        assertThatThrownBy(() -> client.send(sampleTransaction))
+        assertThatThrownBy(() -> testClient.send(testSampleTransaction))
                 .isInstanceOf(RuntimeException.class)
                 .hasRootCauseInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Failed to send transaction to ingestor");
@@ -222,67 +213,67 @@ class IngestorClientTest {
 
     @Test
     void send_differentSourceTypes_shouldIncludeCorrectHeader() throws JsonProcessingException {
-        // Test with CARD_NETWORK source type
-        NormalisedTransaction cardTransaction = new NormalisedTransaction(
+        // Given
+        NormalisedTransaction testCardTransaction = new NormalisedTransaction(
                 UUID.randomUUID().toString(),
                 SourceType.CARD_NETWORK,
                 "CARD-67890",
                 new BigDecimal("99.99"),
                 Currency.getInstance("USD"),
                 "Amazon",
-                "1234", // merchantMcc
+                "1234",
                 Instant.now(),
                 TransactionStatus.PENDING,
                 "{\"card\": \"data\"}"
         );
 
-        String jsonBody = "{\"sourceId\":\"card-id\"}";
-        when(objectMapper.writeValueAsString(cardTransaction)).thenReturn(jsonBody);
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"sourceId\":\"card-id\"}";
+        when(testObjectMapper.writeValueAsString(testCardTransaction)).thenReturn(testJsonBody);
+        when(testRestTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
                 eq(Void.class)
         )).thenReturn(ResponseEntity.ok().build());
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
 
         // Act
-        client.send(cardTransaction);
+        testClient.send(testCardTransaction);
 
         // Assert
-        verify(restTemplate).exchange(
+        verify(testRestTemplate).exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
-                httpEntityCaptor.capture(),
+                testHttpEntityCaptor.capture(),
                 eq(Void.class)
         );
 
-        HttpHeaders headers = httpEntityCaptor.getValue().getHeaders();
-        assertThat(headers.get("X-Source-Type")).containsExactly("CARD_NETWORK");
+        HttpHeaders testHeaders = testHttpEntityCaptor.getValue().getHeaders();
+        assertThat(testHeaders.get("X-Source-Type")).containsExactly("CARD_NETWORK");
     }
 
     @Test
     void send_withPaymentProcessorSource_shouldWorkCorrectly() throws JsonProcessingException {
-        // Test with PAYMENT_PROCESSOR source type
-        NormalisedTransaction paymentTransaction = new NormalisedTransaction(
+        // Given
+        NormalisedTransaction testPaymentTransaction = new NormalisedTransaction(
                 UUID.randomUUID().toString(),
                 SourceType.PAYMENT_PROCESSOR,
                 "PAY-11111",
                 new BigDecimal("50.00"),
                 Currency.getInstance("EUR"),
                 "Stripe",
-                null, // merchantMcc
+                null,
                 Instant.now(),
                 TransactionStatus.REVERSED,
                 "{\"payment\": \"data\"}"
         );
 
-        String jsonBody = "{\"sourceId\":\"payment-id\"}";
-        when(properties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
-        when(properties.getWebhookSecret()).thenReturn("test-secret-key-12345");
-        when(objectMapper.writeValueAsString(paymentTransaction)).thenReturn(jsonBody);
-        when(restTemplate.exchange(
+        String testJsonBody = "{\"sourceId\":\"payment-id\"}";
+        when(testProperties.getWebhookUrl()).thenReturn("http://localhost:8080/ingest");
+        when(testProperties.getWebhookSecret()).thenReturn("test-secret-key-12345");
+        when(testObjectMapper.writeValueAsString(testPaymentTransaction)).thenReturn(testJsonBody);
+        when(testRestTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
@@ -290,17 +281,17 @@ class IngestorClientTest {
         )).thenReturn(ResponseEntity.ok().build());
 
         // Act
-        client.send(paymentTransaction);
+        testClient.send(testPaymentTransaction);
 
         // Assert
-        verify(restTemplate).exchange(
+        verify(testRestTemplate).exchange(
                 eq("http://localhost:8080/ingest"),
                 eq(HttpMethod.POST),
-                httpEntityCaptor.capture(),
+                testHttpEntityCaptor.capture(),
                 eq(Void.class)
         );
 
-        HttpHeaders headers = httpEntityCaptor.getValue().getHeaders();
-        assertThat(headers.get("X-Source-Type")).containsExactly("PAYMENT_PROCESSOR");
+        HttpHeaders testHeaders = testHttpEntityCaptor.getValue().getHeaders();
+        assertThat(testHeaders.get("X-Source-Type")).containsExactly("PAYMENT_PROCESSOR");
     }
 }

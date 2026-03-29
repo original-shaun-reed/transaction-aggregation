@@ -1,14 +1,11 @@
 package za.co.reed.apiservice.controller;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -44,13 +41,13 @@ class AggregationControllerTest {
         private MockMvc mockMvc;
 
         @MockBean
-        AggregationRepository aggregationRepository;
+        AggregationRepository testAggregationRepository;
 
         @MockBean
-        private AggregationService aggregationService;
+        private AggregationService testAggregationService;
 
         @MockBean
-        private ComparisonService comparisonService;
+        private ComparisonService testComparisonService;
 
         private final UUID testAccountId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 
@@ -58,7 +55,7 @@ class AggregationControllerTest {
         @WithMockUser
         void summary_shouldReturnAggregationSummary() throws Exception {
                 // Given
-                AggregationResponse summary = AggregationResponse.builder()
+                AggregationResponse testSummary = AggregationResponse.builder()
                                 .categoryCode("GROCERIES")
                                 .categoryLabel("Groceries")
                                 .totalSpend(new BigDecimal("500.00"))
@@ -66,13 +63,13 @@ class AggregationControllerTest {
                                 .transactionCount(10L)
                                 .build();
 
-                List<AggregationResponse> summaries = Collections.singletonList(summary);
+                List<AggregationResponse> testSummaries = Collections.singletonList(testSummary);
 
-                when(aggregationService.summary(eq(testAccountId.toString()),
+                when(testAggregationService.summary(eq(testAccountId.toString()),
                                 eq(PeriodType.MONTHLY), any(Date.class), any(Date.class)))
                                 .thenReturn(org.springframework.http.ResponseEntity.ok()
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .body(summaries));
+                                                .body(testSummaries));
 
                 // When & Then
                 mockMvc.perform(get("/api/v1/aggregations/{accountId}/summary", testAccountId)
@@ -91,20 +88,20 @@ class AggregationControllerTest {
         @WithMockUser
         void timeSeries_shouldReturnTimeSeriesData() throws Exception {
                 // Given
-                AggregationResponse summary = AggregationResponse.builder()
+                AggregationResponse testSummary = AggregationResponse.builder()
                                 .categoryCode("DAILY")
                                 .categoryLabel("2026-03-01")
                                 .totalSpend(new BigDecimal("100.00"))
                                 .transactionCount(5L)
                                 .build();
 
-                List<AggregationResponse> timeSeries = Collections.singletonList(summary);
+                List<AggregationResponse> testTimeSeries = Collections.singletonList(testSummary);
 
-                when(aggregationService.timeSeries(eq(testAccountId.toString()),
+                when(testAggregationService.timeSeries(eq(testAccountId.toString()),
                                 eq(PeriodType.DAILY), any(Date.class), any(Date.class)))
                                 .thenReturn(org.springframework.http.ResponseEntity.ok()
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .body(timeSeries));
+                                                .body(testTimeSeries));
 
                 // When & Then
                 mockMvc.perform(get("/api/v1/aggregations/{accountId}/time-series", testAccountId)
@@ -121,20 +118,20 @@ class AggregationControllerTest {
         @WithMockUser
         void topMerchants_shouldReturnTopMerchants() throws Exception {
                 // Given
-                AggregationResponse summary = AggregationResponse.builder()
+                AggregationResponse testSummary = AggregationResponse.builder()
                                 .categoryCode("MERCHANT_123")
                                 .categoryLabel("Supermarket")
                                 .totalSpend(new BigDecimal("1000.00"))
                                 .transactionCount(20L)
                                 .build();
 
-                List<AggregationResponse> topMerchants = Collections.singletonList(summary);
+                List<AggregationResponse> testTopMerchants = Collections.singletonList(testSummary);
 
-                when(aggregationService.topMerchants(eq(testAccountId.toString()),
+                when(testAggregationService.topMerchants(eq(testAccountId.toString()),
                                 eq(TransactionStatus.SETTLED), any(Date.class), any(Date.class), eq(10)))
                                 .thenReturn(org.springframework.http.ResponseEntity.ok()
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .body(topMerchants));
+                                                .body(testTopMerchants));
 
                 // When & Then
                 mockMvc.perform(get("/api/v1/aggregations/{accountId}/top-merchants", testAccountId)
@@ -152,24 +149,24 @@ class AggregationControllerTest {
         @WithMockUser
         void byCategory_shouldReturnCategoryBreakdown() throws Exception {
                 // Given
-                AggregationResponse summary = AggregationResponse.builder()
+                AggregationResponse testSummary = AggregationResponse.builder()
                                 .categoryCode("GROCERIES")
                                 .categoryLabel("Groceries")
                                 .totalSpend(new BigDecimal("500.00"))
                                 .transactionCount(10L)
                                 .build();
 
-                List<AggregationResponse> byCategory = Collections.singletonList(summary);
+                List<AggregationResponse> testByCategory = Collections.singletonList(testSummary);
 
                 // Mock the service to return the List directly (not ResponseEntity)
-                when(aggregationService.summary(
+                when(testAggregationService.summary(
                                 any(String.class),
                                 nullable(PeriodType.class),
                                 any(Date.class),
                                 any(Date.class)))
                                 .thenReturn(ResponseEntity.ok()
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .body(byCategory));
+                                                .body(testByCategory));
 
                 // When & Then
                 mockMvc.perform(get("/api/v1/aggregations/{accountId}/by-category", testAccountId)
@@ -192,7 +189,7 @@ class AggregationControllerTest {
         @Test
         @WithMockUser
         void compare_shouldReturn400WhenInvalidRequestBody() throws Exception {
-                String invalidRequestBody = """
+                String testInvalidRequestBody = """
                                 {
                                     "currentFrom": "invalid-date",
                                     "currentTo": "2026-03-31"
@@ -201,7 +198,7 @@ class AggregationControllerTest {
 
                 mockMvc.perform(post("/api/v1/aggregations/{accountId}/compare", testAccountId)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(invalidRequestBody)
+                                .content(testInvalidRequestBody)
                                 .with(csrf()))
                                 .andExpect(status().isBadRequest());
         }
@@ -228,7 +225,7 @@ class AggregationControllerTest {
         @Test
         @WithMockUser
         void summary_shouldReturn500WhenServiceThrowsException() throws Exception {
-                when(aggregationService.summary(any(String.class), any(PeriodType.class), any(Date.class),
+                when(testAggregationService.summary(any(String.class), any(PeriodType.class), any(Date.class),
                                 any(Date.class)))
                                 .thenThrow(new RuntimeException("Service error"));
 
@@ -243,12 +240,12 @@ class AggregationControllerTest {
         @WithMockUser
         void topMerchants_shouldUseDefaultLimit() throws Exception {
                 // Given
-                List<AggregationResponse> emptyList = Collections.emptyList();
-                when(aggregationService.topMerchants(eq(testAccountId.toString()),
+                List<AggregationResponse> testEmptyList = Collections.emptyList();
+                when(testAggregationService.topMerchants(eq(testAccountId.toString()),
                                 eq(TransactionStatus.SETTLED), any(Date.class), any(Date.class), eq(10)))
                                 .thenReturn(org.springframework.http.ResponseEntity.ok()
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .body(emptyList));
+                                                .body(testEmptyList));
 
                 // When & Then - Should use default limit of 10 when not specified
                 mockMvc.perform(get("/api/v1/aggregations/{accountId}/top-merchants", testAccountId)

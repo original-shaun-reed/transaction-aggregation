@@ -15,6 +15,4 @@ public class CacheConfig {
     public CacheConfig(CacheProperties cacheProperties) {
         this.cacheProperties = cacheProperties;
     }
-
-    // Use as: cacheProperties.summary(), cacheProperties.timeSeries(), etc.
 }

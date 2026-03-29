@@ -34,10 +34,10 @@ import static org.mockito.Mockito.*;
 class TransactionServiceTest {
 
     @Mock
-    private TransactionRepository transactionRepository;
+    private TransactionRepository testTransactionRepository;
 
     @InjectMocks
-    private TransactionService transactionService;
+    private TransactionService testTransactionService;
 
     private Transaction testTransaction;
     private UUID testTransactionId;
@@ -69,139 +69,139 @@ class TransactionServiceTest {
     @Test
     void list_shouldReturnPaginatedTransactions() {
         // Given
-        List<Transaction> transactions = Collections.singletonList(testTransaction);
-        Page<Transaction> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10, Sort.Direction.DESC, "createdAt"), 1);
-        when(transactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(transactionPage);
+        List<Transaction> testTransactions = Collections.singletonList(testTransaction);
+        Page<Transaction> testTransactionPage = new PageImpl<>(testTransactions, PageRequest.of(0, 10, Sort.Direction.DESC, "createdAt"), 1);
+        when(testTransactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testTransactionPage);
 
         // When
-        ResponseEntity<DataResponse<TransactionResponse>> response = transactionService.list(
+        ResponseEntity<DataResponse<TransactionResponse>> testResponse = testTransactionService.list(
                 testAccountId, TransactionStatus.SETTLED, new Date(), new Date(), 0, 10, "createdAt", "DESC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
-        assertThat(response.getBody().getTotalCount()).isEqualTo(1);
-        
-        TransactionResponse transactionResponse = response.getBody().getData().get(0);
-        assertThat(transactionResponse.getId()).isEqualTo(testTransactionId);
-        assertThat(transactionResponse.getAmount()).isEqualByComparingTo("100.50");
-        assertThat(transactionResponse.getStatus()).isEqualTo(TransactionStatus.SETTLED);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getBody().getTotalCount()).isEqualTo(1);
+
+        TransactionResponse testTransactionResponse = testResponse.getBody().getData().get(0);
+        assertThat(testTransactionResponse.getId()).isEqualTo(testTransactionId);
+        assertThat(testTransactionResponse.getAmount()).isEqualByComparingTo("100.50");
+        assertThat(testTransactionResponse.getStatus()).isEqualTo(TransactionStatus.SETTLED);
     }
 
     @Test
     void list_shouldReturnEmptyResponseWhenNoTransactions() {
         // Given
-        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
-        when(transactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(emptyPage);
+        Page<Transaction> testEmptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
+        when(testTransactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testEmptyPage);
 
         // When
-        ResponseEntity<DataResponse<TransactionResponse>> response = transactionService.list(
+        ResponseEntity<DataResponse<TransactionResponse>> testResponse = testTransactionService.list(
                 testAccountId, TransactionStatus.SETTLED, new Date(), new Date(), 0, 10, "createdAt", "DESC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
     }
 
     @Test
     void list_shouldHandleExceptionAndRethrow() {
         // When & Then
         assertThrows(RuntimeException.class, () -> {
-            transactionService.list(testAccountId, TransactionStatus.SETTLED, new Date(), new Date(), 0, 10, "createdAt", "DESC");
+            testTransactionService.list(testAccountId, TransactionStatus.SETTLED, new Date(), new Date(), 0, 10, "createdAt", "DESC");
         });
     }
 
     @Test
     void getByExternalId_shouldReturnTransactionWhenFound() {
         // Given
-        when(transactionRepository.findByExternalId(testTransactionId)).thenReturn(testTransaction);
+        when(testTransactionRepository.findByExternalId(testTransactionId)).thenReturn(testTransaction);
 
         // When
-        ResponseEntity<TransactionResponse> response = transactionService.getByExternalId(testTransactionId);
+        ResponseEntity<TransactionResponse> testResponse = testTransactionService.getByExternalId(testTransactionId);
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getId()).isEqualTo(testTransactionId);
-        assertThat(response.getBody().getAmount()).isEqualByComparingTo("100.50");
-        assertThat(response.getBody().getAccountId()).isEqualTo(testAccountId);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getId()).isEqualTo(testTransactionId);
+        assertThat(testResponse.getBody().getAmount()).isEqualByComparingTo("100.50");
+        assertThat(testResponse.getBody().getAccountId()).isEqualTo(testAccountId);
     }
 
     @Test
     void getByExternalId_shouldReturnNotFoundWhenTransactionDoesNotExist() {
         // Given
-        when(transactionRepository.findByExternalId(testTransactionId)).thenReturn(null);
+        when(testTransactionRepository.findByExternalId(testTransactionId)).thenReturn(null);
 
         // When
-        assertThrows(ApiNotFoundException.class, () -> transactionService.getByExternalId(testTransactionId));
+        assertThrows(ApiNotFoundException.class, () -> testTransactionService.getByExternalId(testTransactionId));
     }
 
     @Test
     void getByExternalId_shouldHandleExceptionAndRethrow() {
         // Given
-        when(transactionRepository.findByExternalId(testTransactionId)).thenThrow(new RuntimeException("Database error"));
+        when(testTransactionRepository.findByExternalId(testTransactionId)).thenThrow(new RuntimeException("Database error"));
 
         // When & Then
         assertThrows(RuntimeException.class, () -> {
-            transactionService.getByExternalId(testTransactionId);
+            testTransactionService.getByExternalId(testTransactionId);
         });
     }
 
     @Test
     void list_shouldFilterByAccountId() {
         // Given
-        List<Transaction> transactions = Collections.singletonList(testTransaction);
-        Page<Transaction> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10), 1);
-        when(transactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(transactionPage);
+        List<Transaction> testTransactions = Collections.singletonList(testTransaction);
+        Page<Transaction> testTransactionPage = new PageImpl<>(testTransactions, PageRequest.of(0, 10), 1);
+        when(testTransactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testTransactionPage);
 
         // When
-        ResponseEntity<DataResponse<TransactionResponse>> response = transactionService.list(
+        ResponseEntity<DataResponse<TransactionResponse>> testResponse = testTransactionService.list(
                 testAccountId, null, null, null, 0, 10, "createdAt", "DESC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
         
         // Verify specification was built with accountId filter
-        verify(transactionRepository).findAll(any(Specification.class), any(PageRequest.class));
+        verify(testTransactionRepository).findAll(any(Specification.class), any(PageRequest.class));
     }
 
     @Test
     void list_shouldFilterByStatus() {
         // Given
-        List<Transaction> transactions = Collections.singletonList(testTransaction);
-        Page<Transaction> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10), 1);
-        when(transactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(transactionPage);
+        List<Transaction> testTransactions = Collections.singletonList(testTransaction);
+        Page<Transaction> testTransactionPage = new PageImpl<>(testTransactions, PageRequest.of(0, 10), 1);
+        when(testTransactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testTransactionPage);
 
         // When
-        ResponseEntity<DataResponse<TransactionResponse>> response = transactionService.list(
+        ResponseEntity<DataResponse<TransactionResponse>> testResponse = testTransactionService.list(
                 null, TransactionStatus.SETTLED, null, null, 0, 10, "createdAt", "DESC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
     }
 
     @Test
     void list_shouldFilterByDateRange() {
         // Given
-        List<Transaction> transactions = Collections.singletonList(testTransaction);
-        Page<Transaction> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10), 1);
-        when(transactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(transactionPage);
+        List<Transaction> testTransactions = Collections.singletonList(testTransaction);
+        Page<Transaction> testTransactionPage = new PageImpl<>(testTransactions, PageRequest.of(0, 10), 1);
+        when(testTransactionRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(testTransactionPage);
 
-        Date from = new Date(System.currentTimeMillis() - 86400000); // Yesterday
-        Date to = new Date();
+        Date testFrom = new Date(System.currentTimeMillis() - 86400000); // Yesterday
+        Date testTo = new Date();
 
         // When
-        ResponseEntity<DataResponse<TransactionResponse>> response = transactionService.list(
-                null, null, from, to, 0, 10, "createdAt", "DESC");
+        ResponseEntity<DataResponse<TransactionResponse>> testResponse = testTransactionService.list(
+                null, null, testFrom, testTo, 0, 10, "createdAt", "DESC");
 
         // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData()).hasSize(1);
+        assertThat(testResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(testResponse.getBody()).isNotNull();
+        assertThat(testResponse.getBody().getData()).hasSize(1);
     }
 }

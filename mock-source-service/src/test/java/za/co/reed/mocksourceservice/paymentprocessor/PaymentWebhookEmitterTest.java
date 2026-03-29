@@ -30,284 +30,278 @@ import static org.mockito.Mockito.*;
 class PaymentWebhookEmitterTest {
 
     @Mock
-    private PaymentDataGenerator generator;
-    
+    private PaymentDataGenerator testGenerator;
+
     @Mock
-    private PaymentProcessorAdapter adapter;
-    
+    private PaymentProcessorAdapter testAdapter;
+
     @Mock
-    private PaymentProcessorProperties properties;
-    
+    private PaymentProcessorProperties testProperties;
+
     @Mock
-    private IngestorClient ingestorClient;
-    
-    private PaymentWebhookEmitter paymentWebhookEmitter;
-    
+    private IngestorClient testIngestorClient;
+
+    private PaymentWebhookEmitter testPaymentWebhookEmitter;
+
     @BeforeEach
     void setUp() {
-        paymentWebhookEmitter = new PaymentWebhookEmitter(generator, adapter, properties, ingestorClient);
+        testPaymentWebhookEmitter = new PaymentWebhookEmitter(testGenerator, testAdapter, testProperties, testIngestorClient);
     }
-    
+
     @Test
     void emit_generatesAndSendsTransactions() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(3);
-        when(properties.isRetrySimulation()).thenReturn(false);
-        
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
-            new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
-                new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0)
+        when(testProperties.getEventsPerEmit()).thenReturn(3);
+        when(testProperties.isRetrySimulation()).thenReturn(false);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
+                new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
+                        new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0)
         );
-        
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}"),
-            new NormalisedTransaction("pi_2", SourceType.PAYMENT_PROCESSOR, "cus_002",
-                new BigDecimal("200.00"), Currency.getInstance("USD"),
-                "Merchant2", null, Instant.now().minusSeconds(7200),
-                TransactionStatus.PENDING, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}"),
+                new NormalisedTransaction("pi_2", SourceType.PAYMENT_PROCESSOR, "cus_002",
+                        new BigDecimal("200.00"), Currency.getInstance("USD"),
+                        "Merchant2", null, Instant.now().minusSeconds(7200),
+                        TransactionStatus.PENDING, "{}")
         );
-        
-        when(generator.generate(3, false)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+
+        when(testGenerator.generate(3, false)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
+        testPaymentWebhookEmitter.emit();
+
         // Then
-        verify(generator).generate(3, false);
-        verify(adapter).normalise(rawEvents);
-        verify(ingestorClient, times(2)).send(any(NormalisedTransaction.class));
-        verify(ingestorClient).send(normalisedTransactions.get(0));
-        verify(ingestorClient).send(normalisedTransactions.get(1));
+        verify(testGenerator).generate(3, false);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient, times(2)).send(any(NormalisedTransaction.class));
+        verify(testIngestorClient).send(testNormalisedTransactions.get(0));
+        verify(testIngestorClient).send(testNormalisedTransactions.get(1));
     }
-    
+
     @Test
     void emit_withRetrySimulation() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(2);
-        when(properties.isRetrySimulation()).thenReturn(true);
-        
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
-            new PaymentEvent("evt_1_retry", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 1)
+        when(testProperties.getEventsPerEmit()).thenReturn(2);
+        when(testProperties.isRetrySimulation()).thenReturn(true);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
+                new PaymentEvent("evt_1_retry", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 1)
         );
-        
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}")
         );
-        
-        when(generator.generate(2, true)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+
+        when(testGenerator.generate(2, true)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
+        testPaymentWebhookEmitter.emit();
+
         // Then
-        verify(generator).generate(2, true);
-        verify(adapter).normalise(rawEvents);
-        verify(ingestorClient, times(1)).send(any(NormalisedTransaction.class));
+        verify(testGenerator).generate(2, true);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient, times(1)).send(any(NormalisedTransaction.class));
     }
-    
+
     @Test
     void emit_handlesEmptyBatch() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(0);
-        when(properties.isRetrySimulation()).thenReturn(false);
-        
-        List<PaymentEvent> rawEvents = List.of();
-        List<NormalisedTransaction> normalisedTransactions = List.of();
-        
-        when(generator.generate(0, false)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+        when(testProperties.getEventsPerEmit()).thenReturn(0);
+        when(testProperties.isRetrySimulation()).thenReturn(false);
+
+        List<PaymentEvent> testRawEvents = List.of();
+        List<NormalisedTransaction> testNormalisedTransactions = List.of();
+
+        when(testGenerator.generate(0, false)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
+        testPaymentWebhookEmitter.emit();
+
         // Then
-        verify(generator).generate(0, false);
-        verify(adapter).normalise(rawEvents);
-        verify(ingestorClient, never()).send(any(NormalisedTransaction.class));
+        verify(testGenerator).generate(0, false);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient, never()).send(any(NormalisedTransaction.class));
     }
-    
+
     @Test
     void emit_handlesDeduplication() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(3);
-        when(properties.isRetrySimulation()).thenReturn(false);
-        
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
-            new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
-                new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0),
-            new PaymentEvent("evt_3", "charge.refunded", "pi_3", "cus_003", "Merchant3",
-                new BigDecimal("300.00"), Currency.getInstance("GBP"), Instant.now().minusSeconds(10800), 0)
+        when(testProperties.getEventsPerEmit()).thenReturn(3);
+        when(testProperties.isRetrySimulation()).thenReturn(false);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
+                new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
+                        new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0),
+                new PaymentEvent("evt_3", "charge.refunded", "pi_3", "cus_003", "Merchant3",
+                        new BigDecimal("300.00"), Currency.getInstance("GBP"), Instant.now().minusSeconds(10800), 0)
         );
-        
-        // Simulate adapter filtering out one duplicate
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}"),
-            new NormalisedTransaction("pi_3", SourceType.PAYMENT_PROCESSOR, "cus_003",
-                new BigDecimal("300.00"), Currency.getInstance("GBP"),
-                "Merchant3", null, Instant.now().minusSeconds(10800),
-                TransactionStatus.REVERSED, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}"),
+                new NormalisedTransaction("pi_3", SourceType.PAYMENT_PROCESSOR, "cus_003",
+                        new BigDecimal("300.00"), Currency.getInstance("GBP"),
+                        "Merchant3", null, Instant.now().minusSeconds(10800),
+                        TransactionStatus.REVERSED, "{}")
         );
-        
-        when(generator.generate(3, false)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+
+        when(testGenerator.generate(3, false)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
-        // Then - Should only send the two non-duplicate transactions
-        verify(ingestorClient, times(2)).send(any(NormalisedTransaction.class));
+        testPaymentWebhookEmitter.emit();
+
+        // Then
+        verify(testIngestorClient, times(2)).send(any(NormalisedTransaction.class));
     }
-    
+
     @Test
     void emit_handlesIngestorClientException() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(1);
-        when(properties.isRetrySimulation()).thenReturn(false);
-        
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0)
+        when(testProperties.getEventsPerEmit()).thenReturn(1);
+        when(testProperties.isRetrySimulation()).thenReturn(false);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0)
         );
-        
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}")
         );
-        
-        when(generator.generate(1, false)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
-        // Simulate ingestor client throwing exception
-        doThrow(new RuntimeException("Network error")).when(ingestorClient).send(any(NormalisedTransaction.class));
-        
-        // When - Should not throw exception
-        paymentWebhookEmitter.emit();
-        
-        // Then - Exception should be caught and logged, but emit should complete
-        verify(generator).generate(1, false);
-        verify(adapter).normalise(rawEvents);
-        verify(ingestorClient).send(any(NormalisedTransaction.class));
+
+        when(testGenerator.generate(1, false)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
+        doThrow(new RuntimeException("Network error")).when(testIngestorClient).send(any(NormalisedTransaction.class));
+
+        // When
+        testPaymentWebhookEmitter.emit();
+
+        // Then
+        verify(testGenerator).generate(1, false);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient).send(any(NormalisedTransaction.class));
     }
-    
+
     @Test
     void emit_logsCorrectStatistics() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(5);
-        when(properties.isRetrySimulation()).thenReturn(false);
-        
-        // Generate 5 raw events, but adapter filters 2 as duplicates
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
-            new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
-                new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0),
-            new PaymentEvent("evt_3", "charge.refunded", "pi_3", "cus_003", "Merchant3",
-                new BigDecimal("300.00"), Currency.getInstance("GBP"), Instant.now().minusSeconds(10800), 0),
-            new PaymentEvent("evt_4", "payment_intent.succeeded", "pi_4", "cus_004", "Merchant4",
-                new BigDecimal("400.00"), Currency.getInstance("EUR"), Instant.now().minusSeconds(14400), 0),
-            new PaymentEvent("evt_5", "payment_intent.created", "pi_5", "cus_005", "Merchant5",
-                new BigDecimal("500.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(18000), 0)
+        when(testProperties.getEventsPerEmit()).thenReturn(5);
+        when(testProperties.isRetrySimulation()).thenReturn(false);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
+                new PaymentEvent("evt_2", "payment_intent.created", "pi_2", "cus_002", "Merchant2",
+                        new BigDecimal("200.00"), Currency.getInstance("USD"), Instant.now().minusSeconds(7200), 0),
+                new PaymentEvent("evt_3", "charge.refunded", "pi_3", "cus_003", "Merchant3",
+                        new BigDecimal("300.00"), Currency.getInstance("GBP"), Instant.now().minusSeconds(10800), 0),
+                new PaymentEvent("evt_4", "payment_intent.succeeded", "pi_4", "cus_004", "Merchant4",
+                        new BigDecimal("400.00"), Currency.getInstance("EUR"), Instant.now().minusSeconds(14400), 0),
+                new PaymentEvent("evt_5", "payment_intent.created", "pi_5", "cus_005", "Merchant5",
+                        new BigDecimal("500.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(18000), 0)
         );
-        
-        // Adapter returns 3 transactions (filtering 2 duplicates)
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}"),
-            new NormalisedTransaction("pi_3", SourceType.PAYMENT_PROCESSOR, "cus_003",
-                new BigDecimal("300.00"), Currency.getInstance("GBP"),
-                "Merchant3", null, Instant.now().minusSeconds(10800),
-                TransactionStatus.REVERSED, "{}"),
-            new NormalisedTransaction("pi_5", SourceType.PAYMENT_PROCESSOR, "cus_005",
-                new BigDecimal("500.00"), Currency.getInstance("ZAR"),
-                "Merchant5", null, Instant.now().minusSeconds(18000),
-                TransactionStatus.PENDING, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}"),
+                new NormalisedTransaction("pi_3", SourceType.PAYMENT_PROCESSOR, "cus_003",
+                        new BigDecimal("300.00"), Currency.getInstance("GBP"),
+                        "Merchant3", null, Instant.now().minusSeconds(10800),
+                        TransactionStatus.REVERSED, "{}"),
+                new NormalisedTransaction("pi_5", SourceType.PAYMENT_PROCESSOR, "cus_005",
+                        new BigDecimal("500.00"), Currency.getInstance("ZAR"),
+                        "Merchant5", null, Instant.now().minusSeconds(18000),
+                        TransactionStatus.PENDING, "{}")
         );
-        
-        when(generator.generate(5, false)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+
+        when(testGenerator.generate(5, false)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
-        // Then - Should log statistics: 3 transactions (5 raw, 2 deduped out)
-        verify(generator).generate(5, false);
-        verify(adapter).normalise(rawEvents);
-        verify(ingestorClient, times(3)).send(any(NormalisedTransaction.class));
+        testPaymentWebhookEmitter.emit();
+
+        // Then
+        verify(testGenerator).generate(5, false);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient, times(3)).send(any(NormalisedTransaction.class));
     }
-    
+
     @Test
     void emit_usesPropertiesValues() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(10);
-        when(properties.isRetrySimulation()).thenReturn(true);
-        
-        List<PaymentEvent> rawEvents = List.of();
-        List<NormalisedTransaction> normalisedTransactions = List.of();
-        
-        when(generator.generate(10, true)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+        when(testProperties.getEventsPerEmit()).thenReturn(10);
+        when(testProperties.isRetrySimulation()).thenReturn(true);
+
+        List<PaymentEvent> testRawEvents = List.of();
+        List<NormalisedTransaction> testNormalisedTransactions = List.of();
+
+        when(testGenerator.generate(10, true)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
+        testPaymentWebhookEmitter.emit();
+
         // Then
-        verify(generator).generate(10, true);
-        verify(adapter).normalise(rawEvents);
+        verify(testGenerator).generate(10, true);
+        verify(testAdapter).normalise(testRawEvents);
     }
-    
+
     @Test
     void emit_withRetrySimulationGeneratesRetryEvents() {
         // Given
-        when(properties.getEventsPerEmit()).thenReturn(100);
-        when(properties.isRetrySimulation()).thenReturn(true);
-        
-        // Mock generator to return some events with retryAttempt = 1
-        List<PaymentEvent> rawEvents = List.of(
-            new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
-            new PaymentEvent("evt_1_retry", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 1)
+        when(testProperties.getEventsPerEmit()).thenReturn(100);
+        when(testProperties.isRetrySimulation()).thenReturn(true);
+
+        List<PaymentEvent> testRawEvents = List.of(
+                new PaymentEvent("evt_1", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 0),
+                new PaymentEvent("evt_1_retry", "payment_intent.succeeded", "pi_1", "cus_001", "Merchant1",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"), Instant.now().minusSeconds(3600), 1)
         );
-        
-        List<NormalisedTransaction> normalisedTransactions = List.of(
-            new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
-                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-                "Merchant1", null, Instant.now().minusSeconds(3600),
-                TransactionStatus.SETTLED, "{}")
+
+        List<NormalisedTransaction> testNormalisedTransactions = List.of(
+                new NormalisedTransaction("pi_1", SourceType.PAYMENT_PROCESSOR, "cus_001",
+                        new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                        "Merchant1", null, Instant.now().minusSeconds(3600),
+                        TransactionStatus.SETTLED, "{}")
         );
-        
-        when(generator.generate(100, true)).thenReturn(rawEvents);
-        when(adapter.normalise(rawEvents)).thenReturn(normalisedTransactions);
-        
+
+        when(testGenerator.generate(100, true)).thenReturn(testRawEvents);
+        when(testAdapter.normalise(testRawEvents)).thenReturn(testNormalisedTransactions);
+
         // When
-        paymentWebhookEmitter.emit();
-        
+        testPaymentWebhookEmitter.emit();
+
         // Then
-        verify(generator).generate(100, true);
-        verify(adapter).normalise(rawEvents);
-        // Adapter should deduplicate the retry event
-        verify(ingestorClient, times(1)).send(any(NormalisedTransaction.class));
+        verify(testGenerator).generate(100, true);
+        verify(testAdapter).normalise(testRawEvents);
+        verify(testIngestorClient, times(1)).send(any(NormalisedTransaction.class));
     }
 }

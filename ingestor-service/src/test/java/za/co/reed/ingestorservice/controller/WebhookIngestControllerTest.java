@@ -43,21 +43,21 @@ class WebhookIngestControllerTest {
     private MockMvc mockMvc;
     
     @Autowired
-    private ObjectMapper objectMapper;
+    private ObjectMapper testObjectMapper;
 
     @MockBean
-    private IngestorService ingestorService;
+    private IngestorService testIngestorService;
 
     @MockBean
-    private RestTemplateBuilder restTemplateBuilder;
-    
-    private NormalisedTransaction validTransaction;
+    private RestTemplateBuilder testRestTemplateBuilder;
+
+    private NormalisedTransaction testValidTransaction;
 
 
     
     @BeforeEach
     void setUp() {
-        validTransaction = new NormalisedTransaction(
+        testValidTransaction = new NormalisedTransaction(
             "txn-12345",
             SourceType.PAYMENT_PROCESSOR,
             "cus_001",
@@ -74,14 +74,14 @@ class WebhookIngestControllerTest {
     @Test
     void ingestPayment_returnsAccepted_whenTransactionIsAccepted() throws Exception {
         // Given
-        when(ingestorService.ingest(any(NormalisedTransaction.class)))
+        when(testIngestorService.ingest(any(NormalisedTransaction.class)))
             .thenReturn(IngestResult.ACCEPTED);
         
         // When & Then
         mockMvc.perform(post("/api/internal/webhook/payment")
                 .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validTransaction)))
+                .content(testObjectMapper.writeValueAsString(testValidTransaction)))
             .andExpect(status().isAccepted())
             .andExpect(jsonPath("$.status").value("accepted"))
             .andExpect(jsonPath("$.sourceId").value("txn-12345"));
@@ -90,14 +90,14 @@ class WebhookIngestControllerTest {
     @Test
     void ingestPayment_returnsAccepted_whenTransactionIsDuplicate() throws Exception {
         // Given
-        when(ingestorService.ingest(any(NormalisedTransaction.class)))
+        when(testIngestorService.ingest(any(NormalisedTransaction.class)))
             .thenReturn(IngestResult.DUPLICATE);
         
         // When & Then
         mockMvc.perform(post("/api/internal/webhook/payment")
                 .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validTransaction)))
+                .content(testObjectMapper.writeValueAsString(testValidTransaction)))
             .andExpect(status().isAccepted())
             .andExpect(jsonPath("$.status").value("duplicate"))
             .andExpect(jsonPath("$.sourceId").value("txn-12345"));
@@ -106,14 +106,14 @@ class WebhookIngestControllerTest {
     @Test
     void ingestPayment_returnsInternalServerError_whenTransactionFails() throws Exception {
         // Given
-        when(ingestorService.ingest(any(NormalisedTransaction.class)))
+        when(testIngestorService.ingest(any(NormalisedTransaction.class)))
             .thenReturn(IngestResult.FAILED);
         
         // When & Then
         mockMvc.perform(post("/api/internal/webhook/payment")
                 .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validTransaction)))
+                .content(testObjectMapper.writeValueAsString(testValidTransaction)))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.status").value("failed"))
             .andExpect(jsonPath("$.sourceId").value("txn-12345"));
@@ -139,21 +139,21 @@ class WebhookIngestControllerTest {
         // For unit testing, we're testing the controller directly
         mockMvc.perform(post("/api/internal/webhook/payment")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validTransaction)))
+                .content(testObjectMapper.writeValueAsString(testValidTransaction)))
             .andExpect(status().isBadRequest()); // Or 401 depending on security configuration
     }
     
     @Test
     void ingestPayment_logsDebugMessage_whenRequestReceived() throws Exception {
         // Given
-        when(ingestorService.ingest(any(NormalisedTransaction.class)))
+        when(testIngestorService.ingest(any(NormalisedTransaction.class)))
             .thenReturn(IngestResult.ACCEPTED);
         
         // When & Then
         mockMvc.perform(post("/api/internal/webhook/payment")
                 .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validTransaction)))
+                .content(testObjectMapper.writeValueAsString(testValidTransaction)))
             .andExpect(status().isAccepted());
         
         // Controller logs debug message - can't easily verify in unit test
@@ -163,42 +163,42 @@ class WebhookIngestControllerTest {
     @Test
     void ingestPayment_handlesDifferentSourceTypes() throws Exception {
         // Test with different source types
-        SourceType[] sourceTypes = {SourceType.PAYMENT_PROCESSOR, SourceType.BANK_FEED, SourceType.CARD_NETWORK};
+        SourceType[] testSourceTypes = {SourceType.PAYMENT_PROCESSOR, SourceType.BANK_FEED, SourceType.CARD_NETWORK};
         
-        for (SourceType sourceType : sourceTypes) {
-            NormalisedTransaction transaction = new NormalisedTransaction(
-                "txn-" + sourceType.name(),
-                sourceType,
+        for (SourceType testSourceType : testSourceTypes) {
+            NormalisedTransaction testTransaction = new NormalisedTransaction(
+                "txn-" + testSourceType.name(),
+                testSourceType,
                 "ACC-001",
                 new BigDecimal("50.00"),
                 Currency.getInstance("USD"),
-                "Merchant " + sourceType.name(),
+                "Merchant " + testSourceType.name(),
                 "5678",
                 Instant.now().minusSeconds(1800),
                 TransactionStatus.SETTLED,
                 "{\"raw\": \"payload\"}"
             );
             
-            when(ingestorService.ingest(any(NormalisedTransaction.class)))
+            when(testIngestorService.ingest(any(NormalisedTransaction.class)))
                 .thenReturn(IngestResult.ACCEPTED);
             
             mockMvc.perform(post("/api/internal/webhook/payment")
                     .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(transaction)))
+                    .content(testObjectMapper.writeValueAsString(testTransaction)))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.sourceId").value("txn-" + sourceType.name()));
+                .andExpect(jsonPath("$.sourceId").value("txn-" + testSourceType.name()));
         }
     }
     
     @Test
     void ingestPayment_handlesDifferentTransactionStatuses() throws Exception {
         // Test with different transaction statuses
-        TransactionStatus[] statuses = {TransactionStatus.PENDING, TransactionStatus.SETTLED, TransactionStatus.REVERSED};
+        TransactionStatus[] testStatuses = {TransactionStatus.PENDING, TransactionStatus.SETTLED, TransactionStatus.REVERSED};
         
-        for (TransactionStatus status : statuses) {
-            NormalisedTransaction transaction = new NormalisedTransaction(
-                "txn-" + status.name(),
+        for (TransactionStatus testStatus : testStatuses) {
+            NormalisedTransaction testTransaction = new NormalisedTransaction(
+                "txn-" + testStatus.name(),
                 SourceType.PAYMENT_PROCESSOR,
                 "ACC-001",
                 new BigDecimal("75.00"),
@@ -206,37 +206,37 @@ class WebhookIngestControllerTest {
                 "Merchant",
                 "9012",
                 Instant.now().minusSeconds(2700),
-                status,
+                testStatus,
                 "{\"raw\": \"payload\"}"
             );
             
-            when(ingestorService.ingest(any(NormalisedTransaction.class)))
+            when(testIngestorService.ingest(any(NormalisedTransaction.class)))
                 .thenReturn(IngestResult.ACCEPTED);
             
             mockMvc.perform(post("/api/internal/webhook/payment")
                     .header(HmacSignatureFilter.SIGNATURE_HEADER, "valid-signature")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(transaction)))
+                    .content(testObjectMapper.writeValueAsString(testTransaction)))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.sourceId").value("txn-" + status.name()));
+                .andExpect(jsonPath("$.sourceId").value("txn-" + testStatus.name()));
         }
     }
     
     @Test
     void ingestResponse_recordHasCorrectFields() {
         // Test the IngestResponse record
-        IngestResponse response = new IngestResponse("accepted", "txn-12345");
+        IngestResponse testResponse = new IngestResponse("accepted", "txn-12345");
         
-        assert response.getStatus().equals("accepted");
-        assert response.getSourceId().equals("txn-12345");
+        assert testResponse.getStatus().equals("accepted");
+        assert testResponse.getSourceId().equals("txn-12345");
     }
     
     @Test
     void ingestResult_enumHasCorrectValues() {
         // Test the IngestResult enum
-        IngestResult[] values = IngestResult.values();
+        IngestResult[] testValues = IngestResult.values();
         
-        assert values.length == 3;
+        assert testValues.length == 3;
         assert IngestResult.ACCEPTED != null;
         assert IngestResult.DUPLICATE != null;
         assert IngestResult.FAILED != null;

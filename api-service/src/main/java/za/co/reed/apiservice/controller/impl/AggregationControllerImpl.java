@@ -3,14 +3,14 @@ package za.co.reed.apiservice.controller.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.apiservice.controller.AggregationController;
-import za.co.reed.apiservice.dto.response.AggregationResponse;
 import za.co.reed.apiservice.dto.request.ComparisonRequest;
+import za.co.reed.apiservice.dto.response.AggregationResponse;
 import za.co.reed.apiservice.dto.response.compare.ComparisonResponse;
-import za.co.reed.commom.enums.PeriodType;
 import za.co.reed.apiservice.service.AggregationService;
 import za.co.reed.apiservice.service.ComparisonService;
+import za.co.reed.commom.enums.PeriodType;
+import za.co.reed.commom.enums.TransactionStatus;
 
 import java.util.Date;
 import java.util.List;

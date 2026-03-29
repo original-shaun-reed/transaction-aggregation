@@ -5,7 +5,7 @@ import za.co.reed.apiservice.dto.response.compare.CategoryBreakdown;
 
 @Data
 public class CategoryBreakdownZScore {
-    za.co.reed.apiservice.dto.response.compare.CategoryBreakdown breakdown;
+    CategoryBreakdown breakdown;
     double zScore;
 
     public CategoryBreakdownZScore(CategoryBreakdown breakdown, double zScore) {

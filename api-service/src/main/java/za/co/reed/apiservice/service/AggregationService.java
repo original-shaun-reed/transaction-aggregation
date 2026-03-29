@@ -1,10 +1,5 @@
 package za.co.reed.apiservice.service;
 
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,16 +7,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.apiservice.builder.CacheKeyBuilder;
-import za.co.reed.commom.enums.PeriodType;
 import za.co.reed.apiservice.config.properties.CacheConfigProperties;
 import za.co.reed.apiservice.dto.response.AggregationResponse;
 import za.co.reed.apiservice.exception.ApiInternalServerErrorException;
 import za.co.reed.apiservice.specification.AggregationSpecification;
+import za.co.reed.commom.enums.PeriodType;
+import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.persistence.entity.Aggregation;
 import za.co.reed.persistence.entity.Transaction;
 import za.co.reed.persistence.repository.AggregationRepository;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service

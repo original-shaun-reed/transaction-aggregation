@@ -1,16 +1,16 @@
 package za.co.reed.apiservice.controller.impl;
 
-import java.util.Date;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.apiservice.controller.TransactionController;
 import za.co.reed.apiservice.dto.response.DataResponse;
 import za.co.reed.apiservice.dto.response.TransactionResponse;
 import za.co.reed.apiservice.service.TransactionService;
+import za.co.reed.commom.enums.TransactionStatus;
+
+import java.util.Date;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController

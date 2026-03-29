@@ -38,8 +38,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 // Stateless — no session, no CSRF needed
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // Public endpoints
@@ -58,7 +57,6 @@ public class SecurityConfig {
                 // Custom filters — run before Spring's UsernamePasswordAuthenticationFilter
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter,  UsernamePasswordAuthenticationFilter.class)
-
                 .build();
     }
 }

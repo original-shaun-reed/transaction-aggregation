@@ -29,119 +29,119 @@ import static org.mockito.Mockito.*;
 class CardNetworkAdapterTest {
 
     @Mock
-    private ObjectMapper objectMapper;
-    
-    private CardNetworkAdapter cardNetworkAdapter;
-    
-    private CardRecord sampleRecord;
-    
+    private ObjectMapper testObjectMapper;
+
+    private CardNetworkAdapter testCardNetworkAdapter;
+
+    private CardRecord testSampleRecord;
+
     @BeforeEach
     void setUp() {
-        cardNetworkAdapter = new CardNetworkAdapter(objectMapper);
-        
-        sampleRecord = new CardRecord(
-            "CN-12345",
-            "AUTH123",
-            "1234",
-            "Test Merchant",
-            "Test City",
-            "5411",
-            new BigDecimal("100.50"),
-            Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600),
-            Instant.now().minusSeconds(1800),
-            "CLEARED"
+        testCardNetworkAdapter = new CardNetworkAdapter(testObjectMapper);
+
+        testSampleRecord = new CardRecord(
+                "CN-12345",
+                "AUTH123",
+                "1234",
+                "Test Merchant",
+                "Test City",
+                "5411",
+                new BigDecimal("100.50"),
+                Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600),
+                Instant.now().minusSeconds(1800),
+                "CLEARED"
         );
     }
-    
+
     @Test
     void normalise_returnsEmptyList_whenPayloadIsNotList() {
         // Given
-        Object invalidPayload = "not a list";
-        
+        Object testInvalidPayload = "not a list";
+
         // When
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(invalidPayload);
-        
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(testInvalidPayload);
+
         // Then
-        assertThat(result).isEmpty();
+        assertThat(testResult).isEmpty();
     }
-    
+
     @Test
     void normalise_returnsNormalisedTransactions_whenPayloadIsValid() throws JsonProcessingException {
         // Given
-        List<CardRecord> records = List.of(sampleRecord);
-        when(objectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{\"raw\": \"payload\"}");
-        
+        List<CardRecord> testRecords = List.of(testSampleRecord);
+        when(testObjectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{\"raw\": \"payload\"}");
+
         // When
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(records);
-        
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(testRecords);
+
         // Then
-        assertThat(result).hasSize(1);
-        
-        NormalisedTransaction transaction = result.get(0);
-        assertThat(transaction.sourceId()).isEqualTo("CN-12345");
-        assertThat(transaction.sourceType()).isEqualTo(SourceType.CARD_NETWORK);
-        assertThat(transaction.accountId()).isEqualTo("1234");
-        assertThat(transaction.amount()).isEqualTo(new BigDecimal("100.50"));
-        assertThat(transaction.currency()).isEqualTo(Currency.getInstance("ZAR"));
-        assertThat(transaction.merchantName()).isEqualTo("Test Merchant");
-        assertThat(transaction.merchantMcc()).isEqualTo("5411");
-        assertThat(transaction.status()).isEqualTo(TransactionStatus.SETTLED);
+        assertThat(testResult).hasSize(1);
+
+        NormalisedTransaction testTransaction = testResult.get(0);
+        assertThat(testTransaction.sourceId()).isEqualTo("CN-12345");
+        assertThat(testTransaction.sourceType()).isEqualTo(SourceType.CARD_NETWORK);
+        assertThat(testTransaction.accountId()).isEqualTo("1234");
+        assertThat(testTransaction.amount()).isEqualTo(new BigDecimal("100.50"));
+        assertThat(testTransaction.currency()).isEqualTo(Currency.getInstance("ZAR"));
+        assertThat(testTransaction.merchantName()).isEqualTo("Test Merchant");
+        assertThat(testTransaction.merchantMcc()).isEqualTo("5411");
+        assertThat(testTransaction.status()).isEqualTo(TransactionStatus.SETTLED);
     }
-    
+
     @Test
     void normalise_filtersDuplicates() throws JsonProcessingException {
         // Given
-        CardRecord duplicateRecord = new CardRecord(
-            "CN-12345", // Same ID
-            "AUTH456",
-            "5678",
-            "Another Merchant",
-            "Another City",
-            "5812",
-            new BigDecimal("200.00"),
-            Currency.getInstance("USD"),
-            Instant.now().minusSeconds(7200),
-            Instant.now().minusSeconds(3600),
-            "CLEARED"
+        CardRecord testDuplicateRecord = new CardRecord(
+                "CN-12345",
+                "AUTH456",
+                "5678",
+                "Another Merchant",
+                "Another City",
+                "5812",
+                new BigDecimal("200.00"),
+                Currency.getInstance("USD"),
+                Instant.now().minusSeconds(7200),
+                Instant.now().minusSeconds(3600),
+                "CLEARED"
         );
-        
-        List<CardRecord> records = List.of(sampleRecord, duplicateRecord);
-        when(objectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
-        
+
+        List<CardRecord> testRecords = List.of(testSampleRecord, testDuplicateRecord);
+        when(testObjectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
+
         // When - First call
-        List<NormalisedTransaction> firstResult = cardNetworkAdapter.normalise(records);
-        
+        List<NormalisedTransaction> testFirstResult = testCardNetworkAdapter.normalise(testRecords);
+
         // Then - Should only include first record (second is duplicate)
-        assertThat(firstResult).hasSize(1);
-        
+        assertThat(testFirstResult).hasSize(1);
+
         // When - Second call with same record
-        List<NormalisedTransaction> secondResult = cardNetworkAdapter.normalise(List.of(duplicateRecord));
-        
+        List<NormalisedTransaction> testSecondResult = testCardNetworkAdapter.normalise(List.of(testDuplicateRecord));
+
         // Then - Should be empty (duplicate)
-        assertThat(secondResult).isEmpty();
+        assertThat(testSecondResult).isEmpty();
     }
-    
+
     @Test
     void normalise_handlesJsonSerializationError() throws JsonProcessingException {
         // Given
-        List<CardRecord> records = List.of(sampleRecord);
-        when(objectMapper.writeValueAsString(any(CardRecord.class)))
-            .thenThrow(new JsonProcessingException("JSON error") {});
-        
+        List<CardRecord> testRecords = List.of(testSampleRecord);
+        when(testObjectMapper.writeValueAsString(any(CardRecord.class)))
+                .thenThrow(new JsonProcessingException("JSON error") {});
+
         // When
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(records);
-        
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(testRecords);
+
         // Then - Should still return transaction with fallback JSON
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).rawPayload()).isEqualTo("{}");
+        assertThat(testResult).hasSize(1);
+        assertThat(testResult.get(0).rawPayload()).isEqualTo("{}");
     }
-    
+
     @Test
     void validate_throwsException_whenSourceIdIsBlank() {
         // Given, When & Then
         assertThatThrownBy(() -> new NormalisedTransaction(
-                "", // Blank sourceId
+                "",
                 SourceType.CARD_NETWORK,
                 "1234",
                 new BigDecimal("100.00"),
@@ -155,7 +155,7 @@ class CardNetworkAdapterTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("sourceId must not be blank");
     }
-    
+
     @Test
     void validate_throwsException_whenAmountIsNotPositive() {
         // Given, When & Then
@@ -163,7 +163,7 @@ class CardNetworkAdapterTest {
                 "CN-12345",
                 SourceType.CARD_NETWORK,
                 "1234",
-                new BigDecimal("-10.00"), // Negative amount
+                new BigDecimal("-10.00"),
                 Currency.getInstance("ZAR"),
                 "Test Merchant",
                 "5411",
@@ -174,161 +174,163 @@ class CardNetworkAdapterTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("amount must be positive");
     }
-    
+
     @Test
     void validate_throwsException_whenMerchantMccIsBlank() {
         // Given
-        NormalisedTransaction invalidTransaction = new NormalisedTransaction(
-            "CN-12345",
-            SourceType.CARD_NETWORK,
-            "1234",
-            new BigDecimal("100.00"),
-            Currency.getInstance("ZAR"),
-            "Test Merchant",
-            "", // Blank MCC
-            Instant.now().minusSeconds(3600),
-            TransactionStatus.SETTLED,
-            "{}"
+        NormalisedTransaction testInvalidTransaction = new NormalisedTransaction(
+                "CN-12345",
+                SourceType.CARD_NETWORK,
+                "1234",
+                new BigDecimal("100.00"),
+                Currency.getInstance("ZAR"),
+                "Test Merchant",
+                "",
+                Instant.now().minusSeconds(3600),
+                TransactionStatus.SETTLED,
+                "{}"
         );
-        
+
         // When & Then
-        assertThatThrownBy(() -> cardNetworkAdapter.validate(invalidTransaction))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("merchantMcc must not be blank for card network records");
+        assertThatThrownBy(() -> testCardNetworkAdapter.validate(testInvalidTransaction))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("merchantMcc must not be blank for card network records");
     }
-    
+
     @Test
     void validate_doesNotThrow_whenTransactionIsValid() {
         // Given
-        NormalisedTransaction validTransaction = new NormalisedTransaction(
-            "CN-12345",
-            SourceType.CARD_NETWORK,
-            "1234",
-            new BigDecimal("100.00"),
-            Currency.getInstance("ZAR"),
-            "Test Merchant",
-            "5411",
-            Instant.now().minusSeconds(3600),
-            TransactionStatus.SETTLED,
-            "{}"
+        NormalisedTransaction testValidTransaction = new NormalisedTransaction(
+                "CN-12345",
+                SourceType.CARD_NETWORK,
+                "1234",
+                new BigDecimal("100.00"),
+                Currency.getInstance("ZAR"),
+                "Test Merchant",
+                "5411",
+                Instant.now().minusSeconds(3600),
+                TransactionStatus.SETTLED,
+                "{}"
         );
-        
+
         // When & Then - Should not throw
-        cardNetworkAdapter.validate(validTransaction);
+        testCardNetworkAdapter.validate(testValidTransaction);
     }
-    
+
     @Test
     void isDuplicate_returnsTrue_whenSourceIdAlreadySeen() {
         // Given
-        String sourceId = "CN-12345";
-        
+        String testSourceId = "CN-12345";
+
         // When - First check
-        boolean firstCheck = cardNetworkAdapter.isDuplicate(sourceId);
-        
+        boolean testFirstCheck = testCardNetworkAdapter.isDuplicate(testSourceId);
+
         // Then - Should be false (not a duplicate yet)
-        assertThat(firstCheck).isFalse();
-        
+        assertThat(testFirstCheck).isFalse();
+
         // When - Second check
-        boolean secondCheck = cardNetworkAdapter.isDuplicate(sourceId);
-        
+        boolean testSecondCheck = testCardNetworkAdapter.isDuplicate(testSourceId);
+
         // Then - Should be true (duplicate)
-        assertThat(secondCheck).isTrue();
+        assertThat(testSecondCheck).isTrue();
     }
-    
+
     @Test
     void isDuplicate_returnsFalse_whenSourceIdIsNew() {
         // Given
-        String sourceId = "CN-NEW-123";
-        
+        String testSourceId = "CN-NEW-123";
+
         // When
-        boolean result = cardNetworkAdapter.isDuplicate(sourceId);
-        
+        boolean testResult = testCardNetworkAdapter.isDuplicate(testSourceId);
+
         // Then
-        assertThat(result).isFalse();
+        assertThat(testResult).isFalse();
     }
-    
+
     @Test
     void mapStatus_returnsCorrectStatus() {
-        // Test through normalise method
-        CardRecord clearedRecord = new CardRecord(
-            "CN-1", "AUTH1", "1234", "Merchant", "City", "5411",
-            new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600), Instant.now().minusSeconds(1800), "CLEARED"
+        // Given
+        CardRecord testClearedRecord = new CardRecord(
+                "CN-1", "AUTH1", "1234", "Merchant", "City", "5411",
+                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600), Instant.now().minusSeconds(1800), "CLEARED"
         );
-        
-        CardRecord authRecord = new CardRecord(
-            "CN-2", "AUTH2", "1234", "Merchant", "City", "5411",
-            new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600), null, "AUTH"
+
+        CardRecord testAuthRecord = new CardRecord(
+                "CN-2", "AUTH2", "1234", "Merchant", "City", "5411",
+                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600), null, "AUTH"
         );
-        
-        CardRecord reversedRecord = new CardRecord(
-            "CN-3", "AUTH3", "1234", "Merchant", "City", "5411",
-            new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600), null, "REVERSED"
+
+        CardRecord testReversedRecord = new CardRecord(
+                "CN-3", "AUTH3", "1234", "Merchant", "City", "5411",
+                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600), null, "REVERSED"
         );
-        
-        CardRecord unknownRecord = new CardRecord(
-            "CN-4", "AUTH4", "1234", "Merchant", "City", "5411",
-            new BigDecimal("100.00"), Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600), null, "UNKNOWN"
+
+        CardRecord testUnknownRecord = new CardRecord(
+                "CN-4", "AUTH4", "1234", "Merchant", "City", "5411",
+                new BigDecimal("100.00"), Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600), null, "UNKNOWN"
         );
-        
+
         try {
-            when(objectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
+            when(testObjectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
         } catch (JsonProcessingException e) {
             // Ignore for test
         }
-        
-        List<CardRecord> records = List.of(clearedRecord, authRecord, reversedRecord, unknownRecord);
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(records);
-        
-        assertThat(result).hasSize(4);
-        assertThat(result.get(0).status()).isEqualTo(TransactionStatus.SETTLED);
-        assertThat(result.get(1).status()).isEqualTo(TransactionStatus.PENDING);
-        assertThat(result.get(2).status()).isEqualTo(TransactionStatus.REVERSED);
-        assertThat(result.get(3).status()).isEqualTo(TransactionStatus.PENDING); // default for unknown
+
+        // When
+        List<CardRecord> testRecords = List.of(testClearedRecord, testAuthRecord, testReversedRecord, testUnknownRecord);
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(testRecords);
+
+        // Then
+        assertThat(testResult).hasSize(4);
+        assertThat(testResult.get(0).status()).isEqualTo(TransactionStatus.SETTLED);
+        assertThat(testResult.get(1).status()).isEqualTo(TransactionStatus.PENDING);
+        assertThat(testResult.get(2).status()).isEqualTo(TransactionStatus.REVERSED);
+        assertThat(testResult.get(3).status()).isEqualTo(TransactionStatus.PENDING); // default for unknown
     }
-    
+
     @Test
     void toNormalised_usesClearedAtWhenAvailable() throws JsonProcessingException {
         // Given
-        when(objectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
-        
+        when(testObjectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
+
         // When
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(List.of(sampleRecord));
-        
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(List.of(testSampleRecord));
+
         // Then
-        assertThat(result).hasSize(1);
+        assertThat(testResult).hasSize(1);
         // transactedAt should be clearedAt (not authorisedAt) because record has clearedAt
-        assertThat(result.get(0).transactedAt()).isEqualTo(sampleRecord.clearedAt());
+        assertThat(testResult.get(0).transactedAt()).isEqualTo(testSampleRecord.clearedAt());
     }
-    
+
     @Test
     void toNormalised_usesAuthorisedAtWhenClearedAtIsNull() throws JsonProcessingException {
         // Given
-        CardRecord authOnlyRecord = new CardRecord(
-            "CN-12345",
-            "AUTH123",
-            "1234",
-            "Test Merchant",
-            "Test City",
-            "5411",
-            new BigDecimal("100.50"),
-            Currency.getInstance("ZAR"),
-            Instant.now().minusSeconds(3600),
-            null, // No clearedAt
-            "AUTH"
+        CardRecord testAuthOnlyRecord = new CardRecord(
+                "CN-12345",
+                "AUTH123",
+                "1234",
+                "Test Merchant",
+                "Test City",
+                "5411",
+                new BigDecimal("100.50"),
+                Currency.getInstance("ZAR"),
+                Instant.now().minusSeconds(3600),
+                null, // No clearedAt
+                "AUTH"
         );
-        
-        when(objectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
-        
+
+        when(testObjectMapper.writeValueAsString(any(CardRecord.class))).thenReturn("{}");
+
         // When
-        List<NormalisedTransaction> result = cardNetworkAdapter.normalise(List.of(authOnlyRecord));
-        
+        List<NormalisedTransaction> testResult = testCardNetworkAdapter.normalise(List.of(testAuthOnlyRecord));
+
         // Then
-        assertThat(result).hasSize(1);
+        assertThat(testResult).hasSize(1);
         // transactedAt should be authorisedAt because clearedAt is null
-        assertThat(result.get(0).transactedAt()).isEqualTo(authOnlyRecord.authorisedAt());
+        assertThat(testResult.get(0).transactedAt()).isEqualTo(testAuthOnlyRecord.authorisedAt());
     }
 }

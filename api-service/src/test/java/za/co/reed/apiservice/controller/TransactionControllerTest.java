@@ -42,7 +42,7 @@ class TransactionControllerTest {
   private MockMvc mockMvc;
 
   @MockBean
-  private TransactionService transactionService;
+  private TransactionService testTransactionService;
 
   private final UUID testTransactionId = UUID.fromString("323e4567-e89b-12d3-a456-426614174002");
   private final UUID testAccountId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
@@ -52,7 +52,7 @@ class TransactionControllerTest {
   @WithMockUser
   void list_shouldReturnPaginatedTransactions() throws Exception {
     // Given
-    TransactionResponse transactionResponse = TransactionResponse.builder()
+    TransactionResponse testTransactionResponse = TransactionResponse.builder()
         .id(testTransactionId)
         .sourceId("source-123")
         .sourceType(SourceType.BANK_FEED)
@@ -70,14 +70,14 @@ class TransactionControllerTest {
         .build();
 
     DataResponse<TransactionResponse> mockResponse = DataResponse.<TransactionResponse>builder()
-        .data(Collections.singletonList(transactionResponse))
+        .data(Collections.singletonList(testTransactionResponse))
         .totalCount(1L)
         .page(0)
         .pageSize(20)
         .hasMore(false)
         .build();
 
-    when(transactionService.list(
+    when(testTransactionService.list(
         anyString(), any(TransactionStatus.class), any(Date.class), any(Date.class),
         anyInt(), anyInt(), anyString(), anyString()))
         .thenReturn(ResponseEntity.ok(mockResponse));
@@ -117,7 +117,7 @@ class TransactionControllerTest {
         .hasMore(false)
         .build();
 
-    when(transactionService.list(
+    when(testTransactionService.list(
         isNull(), isNull(), isNull(), isNull(),
         eq(0), eq(20), eq("createdAt"), eq("asc")))
         .thenReturn(ResponseEntity.ok(mockResponse));
@@ -131,7 +131,7 @@ class TransactionControllerTest {
   @WithMockUser
   void getById_shouldReturnTransactionWhenFound() throws Exception {
     // Given
-    TransactionResponse transactionResponse = TransactionResponse.builder()
+    TransactionResponse testTransactionResponse = TransactionResponse.builder()
         .id(testTransactionId)
         .sourceId("source-123")
         .sourceType(SourceType.BANK_FEED)
@@ -148,8 +148,8 @@ class TransactionControllerTest {
         .createdAt(Instant.parse("2026-03-15T10:35:00Z"))
         .build();
 
-    when(transactionService.getByExternalId(testTransactionId))
-        .thenReturn(new ResponseEntity<>(transactionResponse, HttpStatus.OK));
+    when(testTransactionService.getByExternalId(testTransactionId))
+        .thenReturn(new ResponseEntity<>(testTransactionResponse, HttpStatus.OK));
 
     // When & Then
     mockMvc.perform(get("/api/v1/transactions/{id}", testTransactionId))
@@ -166,7 +166,7 @@ class TransactionControllerTest {
   @WithMockUser
   void getById_shouldReturn404WhenNotFound() throws Exception {
     // Given
-    when(transactionService.getByExternalId(testTransactionId))
+    when(testTransactionService.getByExternalId(testTransactionId))
         .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
     // When & Then
@@ -178,7 +178,7 @@ class TransactionControllerTest {
   @WithMockUser
   void merchantSearch_shouldReturnSearchResults() throws Exception {
     // Given
-    TransactionResponse transactionResponse = TransactionResponse.builder()
+    TransactionResponse testTransactionResponse = TransactionResponse.builder()
         .id(testTransactionId)
         .sourceId("source-123")
         .sourceType(SourceType.BANK_FEED)
@@ -196,14 +196,14 @@ class TransactionControllerTest {
         .build();
 
     DataResponse<TransactionResponse> mockResponse = DataResponse.<TransactionResponse>builder()
-        .data(Collections.singletonList(transactionResponse))
+        .data(Collections.singletonList(testTransactionResponse))
         .totalCount(1L)
         .page(0)
         .pageSize(20)
         .hasMore(false)
         .build();
 
-    when(transactionService.merchantSearch(
+    when(testTransactionService.merchantSearch(
         anyString(), any(Date.class), any(Date.class),
         anyInt(), anyInt(), anyString(), anyString()))
         .thenReturn(ResponseEntity.ok(mockResponse));
@@ -242,7 +242,7 @@ class TransactionControllerTest {
   @WithMockUser
   void getById_shouldReturn500WhenServiceThrowsException() throws Exception {
     // Given
-    when(transactionService.getByExternalId(testTransactionId))
+    when(testTransactionService.getByExternalId(testTransactionId))
         .thenThrow(new RuntimeException("Service error"));
 
     // When & Then
