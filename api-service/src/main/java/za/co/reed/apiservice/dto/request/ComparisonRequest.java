@@ -84,6 +84,6 @@ public class ComparisonRequest implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentFrom, currentTo, previousFrom, previousTo, accountId, categoryIds, includeAnomalies);
+        return Objects.hash(currentFrom, currentTo, previousFrom, previousTo, accountId, periodType, categoryIds, includeAnomalies);
     }
 }

@@ -25,7 +25,13 @@ import java.util.UUID;
 @Tag(name = "Categories", description = "Transaction category hierarchy")
 @Validated
 public interface CategoryController {
-        @Operation(summary = "List all categories", description = "Returns the full category hierarchy ordered by ltree path (parents before children). Includes codes, labels, paths, and MCC codes for client-side mapping.")
+        @Operation(
+                summary = "List all categories",
+                description = """
+                                Returns the full category hierarchy ordered by ltree path (parents before children). 
+                                Includes codes, labels, paths, and MCC codes for client-side mapping.
+                              """
+        )
         @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Category list retrieved successfully", content = @Content(schema = @Schema(implementation = DataResponse.class))),
                         @ApiResponse(responseCode = "400", description = "Bad Request: Invalid query parameters", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),

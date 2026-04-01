@@ -22,8 +22,7 @@ public class AggregationControllerImpl implements AggregationController {
     private final ComparisonService comparisonService;
 
     @Override
-    public ResponseEntity<List<AggregationResponse>> summary(String accountId, PeriodType periodType, Date from,
-            Date to) {
+    public ResponseEntity<List<AggregationResponse>> summary(String accountId, PeriodType periodType, Date from, Date to) {
         return aggregationService.summary(accountId, periodType, from, to);
     }
 
@@ -33,14 +32,13 @@ public class AggregationControllerImpl implements AggregationController {
     }
 
     @Override
-    public ResponseEntity<List<AggregationResponse>> timeSeries(String accountId, PeriodType periodType, Date from,
-            Date to) {
+    public ResponseEntity<List<AggregationResponse>> timeSeries(String accountId, PeriodType periodType, Date from, Date to) {
         return aggregationService.timeSeries(accountId, periodType, from, to);
     }
 
     @Override
     public ResponseEntity<List<AggregationResponse>> topMerchants(String accountId, TransactionStatus status, Date from,
-            Date to, int limit) {
+                                                                  Date to, int limit) {
         return aggregationService.topMerchants(accountId, status, from, to, limit);
     }
 

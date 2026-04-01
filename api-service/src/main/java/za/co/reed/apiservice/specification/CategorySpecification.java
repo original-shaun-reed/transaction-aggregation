@@ -1,15 +1,10 @@
 package za.co.reed.apiservice.specification;
 
+import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 import za.co.reed.persistence.entity.Category;
 
-import java.util.List;
-
 public class CategorySpecification {
-
-    public static Specification<Category> pathNotLike() {
-       return (root, query, cb) -> cb.notLike(root.get("path").as(String.class), "%.%");
-    }
 
     public static Specification<Category> mccCodeContains(String mccCodes) {
         List<String> mccCodeList = List.of(mccCodes.split(","));
