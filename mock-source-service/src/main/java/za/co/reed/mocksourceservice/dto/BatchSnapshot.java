@@ -1,6 +1,6 @@
 package za.co.reed.mocksourceservice.dto;
-import za.co.reed.commom.dto.NormalisedTransaction;
 
+import za.co.reed.commom.dto.NormalisedTransaction;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;

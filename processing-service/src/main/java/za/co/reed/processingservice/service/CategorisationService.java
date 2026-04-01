@@ -66,9 +66,20 @@ public class CategorisationService {
                 source.sourceId(), resolved.getCode(), determineTier(category));
     }
 
+    public Category retreiveCategory(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + id));
+    }
+
     private String determineTier(Optional<Category> rulesResult) {
-        if (rulesResult.isPresent()) return "rules";
-        if (mlClassifier.isPresent()) return "ml";
+        if (rulesResult.isPresent()) {
+            return "rules";
+        }
+
+        if (mlClassifier.isPresent()) {
+            return "ml";
+        }
+
         return "fallback";
     }
 }

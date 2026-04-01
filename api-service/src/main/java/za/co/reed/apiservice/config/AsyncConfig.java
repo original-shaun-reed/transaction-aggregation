@@ -13,7 +13,6 @@ import java.util.concurrent.Executor;
  *
  * Used by:
  *   - CompareService: CompletableFuture.supplyAsync() for parallel DB queries
- *   - ExportService:  @Async CSV generation
  *
  * Pool sizing rationale:
  *   - Core pool = 4: baseline threads for parallel compare queries

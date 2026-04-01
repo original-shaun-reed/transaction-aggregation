@@ -41,7 +41,7 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class AggregationWorker {
-    private final CategoryRepository categoryRepository;
+    private final CategorisationService categorisationService;
     private final AggregationRepository aggregationRepository;
 
     @Transactional(rollbackFor = Exception.class)
@@ -103,8 +103,7 @@ public class AggregationWorker {
     }
 
     private void upsertSpend(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
+        Category category = categorisationService.retreiveCategory(categoryId);
         
         Aggregation aggregation = aggregationRepository.findByAccountIdAndCategoryAndPeriodTypeAndPeriodDate(
                 accountId, category, periodType, periodDate);
@@ -129,8 +128,7 @@ public class AggregationWorker {
     }
 
     private void upsertReversal(String accountId, Long categoryId, LocalDate periodDate, PeriodType periodType, BigDecimal amount) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
+        Category category = categorisationService.retreiveCategory(categoryId);
 
         Aggregation aggregation = aggregationRepository.findByAccountIdAndCategoryAndPeriodTypeAndPeriodDate(
                 accountId, category, periodType, periodDate);

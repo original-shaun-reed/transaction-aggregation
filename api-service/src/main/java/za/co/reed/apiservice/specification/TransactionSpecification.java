@@ -1,12 +1,10 @@
 package za.co.reed.apiservice.specification;
 
+import java.util.Date;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 import za.co.reed.commom.enums.TransactionStatus;
 import za.co.reed.persistence.entity.Transaction;
-
-import java.util.Date;
-import java.util.UUID;
 
 public class TransactionSpecification {
     public static Specification<Transaction> accountId(String accountId) {
@@ -32,11 +30,6 @@ public class TransactionSpecification {
     public static Specification<Transaction> createdAtLessThanOrEqualTo(Date transactionAt) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), transactionAt);
-    }
-
-    public static Specification<Transaction> externalId(UUID externalId) {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.lessThanOrEqualTo(root.get("externalId"), externalId);
     }
 
     public static Specification<Transaction> merchantName(String merchantName) {

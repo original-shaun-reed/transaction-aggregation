@@ -77,11 +77,23 @@ public interface AggregationController {
                         @ApiResponse(responseCode = "500", description = "Internal Server Error: Unexpected error occurred", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
         })
         @GetMapping(value = { "/{accountId}/time-series" }, produces = MediaType.APPLICATION_JSON_VALUE)
-        ResponseEntity<List<AggregationResponse>> timeSeries(
-                @Valid @Parameter(description = "Filter to a specific account ID") @PathVariable String accountId,
-                        @Valid @Parameter(description = "Filter by period type: DAILY, MONTHLY, WEEKLY", example = "DAILY") @RequestParam PeriodType periodType,
-                        @Valid @Parameter(description = "Start of the period (inclusive)", example = "2026-03-01") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date from,
-                        @Valid  @Parameter(description = "End of the period (inclusive)", example = "2026-03-31") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date to);
+        ResponseEntity<List<AggregationResponse>> timeSeries(@Valid @Parameter(description = "Filter to a specific account ID")
+                                                             @PathVariable
+                                                             String accountId,
+
+                                                             @Valid
+                                                             @Parameter(description = "Filter by period type: DAILY, MONTHLY, WEEKLY", example = "DAILY")
+                                                             @RequestParam
+                                                             PeriodType periodType,
+
+                                                             @Valid
+                                                             @Parameter(description = "Start of the period (inclusive)", example = "2026-03-01")
+                                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                             Date from,
+
+                                                             @Valid  @Parameter(description = "End of the period (inclusive)", example = "2026-03-31")
+                                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                             Date to);
 
         @Operation(summary = "Top merchants by spend", description = "Returns merchants ranked by total spend. Cached for 2 minutes.")
         @ApiResponses({

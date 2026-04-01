@@ -1,13 +1,9 @@
 package za.co.reed.apiservice.specification;
 
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Root;
+import java.util.Date;
 import org.springframework.data.jpa.domain.Specification;
 import za.co.reed.commom.enums.PeriodType;
 import za.co.reed.persistence.entity.Aggregation;
-import za.co.reed.persistence.entity.Category;
-
-import java.util.Date;
 
 public class AggregationSpecification {
 
@@ -29,10 +25,6 @@ public class AggregationSpecification {
 
     public static Specification<Aggregation> accountExternalId(String accountId) {
         return accountIdEquals(accountId).or(accountIsNull());
-    }
-
-    private static Join<Aggregation, Category> joinCategory(Root<Aggregation> root) {
-        return root.join("category");
     }
 
     public static Specification<Aggregation> accountIdEquals(String accountId) {
